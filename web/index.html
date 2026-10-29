@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zooz Web • Social Blogging & Interactive Hub</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            950: '#0B0F19',
+                            900: '#0F172A',
+                            800: '#1E293B',
+                            700: '#334155',
+                            600: '#475569',
+                        },
+                        accent: {
+                            pink: '#EC4899',
+                            blue: '#3B82F6',
+                            purple: '#8B5CF6',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Custom animations & scroll bars -->
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0F172A;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        @keyframes rotate-disk {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinning-disk {
+            animation: rotate-disk 5s linear infinite;
+        }
+        .glow-active {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen antialiased selection:bg-accent-blue/30 selection:text-blue-200">
+
+    <!-- Top Glow Spots -->
+    <div class="fixed -top-40 -left-40 w-96 h-96 bg-accent-blue/15 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed -top-40 -right-40 w-96 h-96 bg-accent-pink/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <!-- Layout Container -->
+    <div class="max-w-7xl mx-auto px-4 py-6 md:py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+        
+        <!-- Left Sidebar: Info Panel (Desktop only) -->
+        <div class="hidden lg:flex lg:col-span-3 flex-col space-y-6">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-accent-pink to-accent-blue p-2.5 rounded-2xl shadow-lg shadow-accent-blue/20">
+                    <span class="text-2xl font-black tracking-tight text-white select-none">Z</span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight">
+                        <span class="text-blue-500">z</span><span class="text-red-500">o</span><span class="text-yellow-500">o</span><span class="text-green-500">z</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400 uppercase tracking-widest font-bold">Web Companion</p>
+                </div>
+            </div>
+            
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-accent-blue animate-pulse"></i> About Zooz Web
+                </h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    A premium web client for the **Zooz** Social blogging ecosystem. Realized as a fully interactive modular demo with local state persistence.
+                </p>
+                <div class="h-px bg-slate-800"></div>
+                <div class="space-y-3">
+                    <h4 class="text-xs font-semibold text-slate-300">Synchronized Features:</h4>
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                        <span>Multi-file Upload Engine</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                        <span>P2P Local Marketplace</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                        <span>ZoozPay Sandwich Sandbox</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                        <span>Live client-side memory storage</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Overview Quick Action -->
+            <div id="left-profile-teaser" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex items-center justify-between cursor-pointer hover:border-slate-700 transition" onclick="switchTab('profile')">
+                <div class="flex items-center space-x-3">
+                    <img id="teaser-avatar" class="w-10 h-10 rounded-full border border-slate-700 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar">
+                    <div>
+                        <h4 id="teaser-user" class="text-xs font-bold text-slate-100">@GuestUser</h4>
+                        <p class="text-[10px] text-slate-400">View your dashboard</p>
+                    </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+            </div>
+            
+            <p class="text-[10px] text-slate-500 text-center uppercase tracking-widest font-mono">
+                Running v1.4.0 • UTC 2026
+            </p>
+        </div>
+
+        <!-- Middle Column: Interactive Mobile Viewport Simulator / Direct Workspace -->
+        <div class="col-span-12 lg:col-span-6 flex flex-col">
+            
+            <!-- Quick Top Bar -->
+            <div class="flex items-center justify-between lg:hidden mb-4 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg font-black tracking-tight text-white">Zooz</span>
+                    <span class="text-[10px] bg-accent-blue/20 text-accent-blue px-2 py-0.5 rounded-full font-mono">Web</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button class="bg-slate-800 p-2 rounded-xl border border-slate-700 hover:text-accent-blue transition" onclick="switchTab('profile')">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </button>
+                    <button class="bg-slate-800 p-2 rounded-xl border border-slate-700 hover:text-accent-pink transition" onclick="resetStore()">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Device Outer Container -->
+            <div class="bg-slate-900/45 md:bg-slate-900 border border-slate-800/80 rounded-3xl overflow-hidden flex flex-col h-[820px] shadow-2xl relative">
+                
+                <!-- Simulated Phone Status Bar -->
+                <div class="hidden md:flex items-center justify-between bg-slate-900 px-6 py-2 border-b border-slate-800/60 select-none text-xs text-slate-400">
+                    <span class="font-bold text-[11px] tracking-tight text-slate-300">9:41 <span class="text-accent-blue">AM</span></span>
+                    <div class="w-20 h-4 bg-black rounded-full absolute left-1/2 -translate-x-1/2 top-1 border border-slate-800/40"></div>
+                    <div class="flex items-center space-x-2 text-slate-400">
+                        <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+                        <i data-lucide="signal" class="w-3.5 h-3.5"></i>
+                        <i data-lucide="battery" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+
+                <!-- Main Content Area with independent scroll bar -->
+                <div class="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-6 flex flex-col relative" id="applet-viewport">
+                    
+                    <!-- DYNAMIC VIEW: FEED (Home) -->
+                    <div id="view-feed" class="space-y-6 flex flex-col app-view">
+                        <!-- Stories Bar wrapper -->
+                        <div class="flex flex-col space-y-2">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Featured Stories</h3>
+                            <div class="flex space-x-3.5 overflow-x-auto pb-2 scrollbar-none" id="stories-strip">
+                                <!-- Dynamic stories items will populate here -->
+                            </div>
+                        </div>
+
+                        <!-- Posts Feed container -->
+                        <div class="space-y-6 flex flex-col" id="posts-container">
+                            <!-- Dynamic posts view cards -->
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC VIEW: CREATE POST -->
+                    <div id="view-create" class="space-y-5 hidden app-view">
+                        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                            <div>
+                                <h2 class="text-xl font-extrabold tracking-tight">Create Post</h2>
+                                <p class="text-xs text-slate-400">Configure visual items & multi-attachment media</p>
+                            </div>
+                            <i data-lucide="pen-square" class="w-6 h-6 text-accent-blue"></i>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- Post Title -->
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-bold text-slate-400">Post Title</label>
+                                <input type="text" id="input-post-title" placeholder="Give your post an engaging title..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-accent-blue transition">
+                            </div>
+
+                            <!-- Category & Tags -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1.5">
+                                    <label class="text-xs font-bold text-slate-400">Category</label>
+                                    <select id="input-post-category" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-accent-blue transition">
+                                        <option value="Tech">💻 Tech</option>
+                                        <option value="Lifestyle">🌿 Lifestyle</option>
+                                        <option value="Travel">✈️ Travel</option>
+                                        <option value="Music">🎵 Music</option>
+                                        <option value="Design">🎨 Design</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="text-xs font-bold text-slate-400">Tags (comma separated)</label>
+                                    <input type="text" id="input-post-tags" placeholder="coding, workflow" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-accent-blue transition">
+                                </div>
+                            </div>
+
+                            <!-- Post Content Body -->
+                            <div class="space-y-1.5">
+                                <label class="text-xs font-bold text-slate-400">Post Content</label>
+                                <textarea id="input-post-content" rows="4" placeholder="What's on your mind? Share your story..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-accent-blue transition resize-none"></textarea>
+                            </div>
+
+                            <!-- Multi-File Attachment System (COMPACT UI) -->
+                            <div class="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 space-y-3.5">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-300">File Attachment Engine</h4>
+                                        <p class="text-[10px] text-slate-400">Paste and stack multiple visual asset URLs</p>
+                                    </div>
+                                    <span class="text-[10px] uppercase font-mono px-2 py-0.5 bg-accent-blue/20 text-accent-blue rounded-full font-bold">Multi-supported</span>
+                                </div>
+
+                                <div class="flex space-x-2">
+                                    <input type="text" id="input-media-url" placeholder="https://unsplash.com/... or videoloop.mp4" class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-slate-100 text-xs focus:outline-none focus:border-accent-blue transition">
+                                    <button onclick="addAttachedMediaUrl()" class="bg-accent-blue hover:bg-blue-600 px-4 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                                        <i data-lucide="plus" class="w-4 h-4"></i> Add
+                                    </button>
+                                </div>
+
+                                <!-- Scrollable Preview Strip (resembling Android dynamic image viewer) -->
+                                <div class="hidden" id="attach-preview-wrapper">
+                                    <p class="text-[10px] font-semibold text-slate-400 mb-2">Attached list:</p>
+                                    <div class="flex items-center space-x-3 overflow-x-auto pb-1" id="attach-preview-list">
+                                        <!-- Dynamic previews will show here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action button -->
+                            <button onclick="createPostSubmit()" class="w-full bg-gradient-to-r from-accent-blue to-accent-purple py-3 rounded-2xl font-bold hover:opacity-90 active:scale-[0.98] transition shadow-lg shadow-accent-blue/10 flex items-center justify-center gap-2">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i> Publish Post
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC VIEW: MARKETPLACE -->
+                    <div id="view-marketplace" class="space-y-5 hidden app-view col-flex">
+                        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                            <div>
+                                <h2 class="text-xl font-extrabold tracking-tight">Zooz Marketplace</h2>
+                                <p class="text-xs text-slate-400">Discover and trade tech with neighborhood peers</p>
+                            </div>
+                            <span class="text-xs bg-lime-500/10 text-lime-400 border border-lime-500/20 px-3 py-1 rounded-full font-bold">C2C Active</span>
+                        </div>
+
+                        <!-- Filter and Search input -->
+                        <div class="flex items-center space-x-2">
+                            <div class="relative flex-1">
+                                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                                <input type="text" id="market-search" oninput="renderMarketplace()" placeholder="Search tech, custom keycaps..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs focus:outline-none focus:border-accent-blue text-slate-100 transition">
+                            </div>
+                            <button onclick="openAddMarketplaceItemModal()" class="bg-slate-800 hover:bg-slate-700 p-2 border border-slate-700 text-accent-blue rounded-xl transition flex items-center justify-center gap-1 text-xs font-bold px-3">
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> List Item
+                            </button>
+                        </div>
+
+                        <!-- Marketplace List Grid -->
+                        <div class="grid grid-cols-2 gap-3.5" id="marketplace-grid">
+                            <!-- Dynamic marketplace cards -->
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC VIEW: DIRECT MESSAGES -->
+                    <div id="view-messages" class="hidden app-view flex-1 flex flex-col h-full overflow-hidden">
+                        <!-- Chat Contacts Strip -->
+                        <div class="flex space-x-3 overflow-x-auto pb-3 border-b border-slate-800/80 scrollbar-none shrink-0" id="chat-contacts-strip">
+                            <!-- Dynamic list of available bloggers to chat -->
+                        </div>
+
+                        <!-- Active chat pane -->
+                        <div class="flex-1 flex flex-col overflow-hidden pt-4 min-h-0">
+                            <!-- Chat header -->
+                            <div class="flex items-center justify-between shrink-0 mb-3 bg-slate-950/80 p-3 rounded-2xl border border-slate-800">
+                                <div class="flex items-center space-x-3">
+                                    <div class="relative">
+                                        <img id="active-chat-avatar" class="w-9 h-9 rounded-full object-cover" src="" alt="">
+                                        <span class="w-2.5 h-2.5 bg-green-500 border border-slate-950 rounded-full absolute bottom-0 right-0"></span>
+                                    </div>
+                                    <div>
+                                        <h4 id="active-chat-username" class="text-xs font-bold text-slate-200">Chat Session</h4>
+                                        <p class="text-[10px] text-green-400">Active online status</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <!-- Dynamic chat indicators -->
+                                    <span class="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">Sandbox Encrypted</span>
+                                </div>
+                            </div>
+
+                            <!-- Scrollable messages container -->
+                            <div class="flex-1 overflow-y-auto space-y-3.5 pr-2 mb-3 min-h-0" id="chat-messages-container">
+                                <!-- Messages load dynamically -->
+                            </div>
+
+                            <!-- Bottom Input Block -->
+                            <div class="flex items-center space-x-2 shrink-0 bg-slate-950 p-2 rounded-2xl border border-slate-800/80">
+                                <input type="text" id="chat-entry-input" onkeydown="handleChatKeydown(event)" placeholder="Type encrypted message..." class="flex-1 bg-transparent text-xs px-3 py-2 text-slate-100 focus:outline-none">
+                                <button onclick="sendChatMessage()" class="bg-accent-blue hover:bg-blue-600 p-2 rounded-xl text-white transition">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC VIEW: PROFILE -->
+                    <div id="view-profile" class="space-y-6 hidden app-view">
+                        <!-- Profile Header -->
+                        <div class="flex flex-col items-center justify-center text-center space-y-3.5 bg-slate-950 p-6 rounded-3xl border border-slate-800">
+                            <div class="relative group">
+                                <div class="absolute -inset-1 bg-gradient-to-r from-accent-pink to-accent-blue rounded-full blur opacity-40 group-hover:opacity-60 transition"></div>
+                                <img id="profile-avatar" class="w-20 h-20 rounded-full border-2 border-slate-800 object-cover relative" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Avatar">
+                            </div>
+                            <div>
+                                <h2 id="profile-display-name" class="text-lg font-extrabold tracking-tight">Sophia Lopez</h2>
+                                <p id="profile-display-username" class="text-xs text-slate-400 font-mono">@sophia_dev</p>
+                                <p id="profile-display-bio" class="text-xs text-slate-400 max-w-xs mt-2 italic leading-relaxed">Coding modern Android systems & styling reactive dashboards in high fidelity.</p>
+                            </div>
+                            
+                            <!-- Wallet indicator -->
+                            <div class="flex items-center space-x-2 bg-slate-900 border border-slate-800 rounded-full px-4 py-1.5 text-xs">
+                                <i data-lucide="wallet" class="w-3.5 h-3.5 text-lime-400"></i>
+                                <span class="font-bold text-slate-200">ZoozPay:</span>
+                                <span class="text-lime-400 font-mono font-semibold" id="profile-wallet">$0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats Dashboard Rows -->
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-center space-y-1">
+                                <span class="text-lg font-black text-slate-200" id="stat-posts">0</span>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Posts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-center space-y-1">
+                                <span class="text-lg font-black text-slate-200" id="stat-likes">0</span>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Liked</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-center space-y-1">
+                                <span class="text-lg font-black text-slate-200" id="stat-saves">0</span>
+                                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Saved</p>
+                            </div>
+                        </div>
+
+                        <!-- Auth switch profile sandbox / registration -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                            <h4 class="text-xs font-bold text-slate-300">Identity Sandbox (Register User)</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="reg-username" placeholder="Username" class="bg-slate-950 border border-slate-800 px-3 py-1.5 text-xs rounded-xl focus:outline-none focus:border-accent-blue text-slate-100">
+                                <input type="text" id="reg-displayname" placeholder="Display Name" class="bg-slate-950 border border-slate-800 px-3 py-1.5 text-xs rounded-xl focus:outline-none focus:border-accent-blue text-slate-100">
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="reg-bio" placeholder="Bio description..." class="flex-1 bg-slate-950 border border-slate-800 px-3 py-1.5 text-xs rounded-xl focus:outline-none focus:border-accent-blue text-slate-100">
+                                <button onclick="handleUserRegistration()" class="bg-accent-blue hover:bg-blue-600 px-4 py-1.5 rounded-xl text-xs font-bold text-white transition">Update</button>
+                            </div>
+                        </div>
+
+                        <!-- Showcase list -->
+                        <div class="space-y-3.5">
+                            <div class="flex border-b border-slate-800/80 pb-1">
+                                <button class="flex-1 pb-2 border-b-2 border-accent-blue text-xs font-bold text-slate-200">Your Posts</button>
+                                <button class="flex-1 pb-2 border-b-2 border-transparent text-xs text-slate-400 font-medium">Bookmarks</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3" id="profile-posts-grid">
+                                <!-- Dynamically filters user authored posts -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Bottom Navigation Dock (Sticking like modern Android OS bar) -->
+                <nav class="bg-slate-900 border-t border-slate-800/80 p-3 flex items-center justify-around select-none shrink-0" id="applet-navigation">
+                    <button id="nav-btn-feed" onclick="switchTab('feed')" class="flex flex-col items-center justify-center space-y-1 text-accent-blue transition">
+                        <i data-lucide="home" class="w-5 h-5"></i>
+                        <span class="text-[9px] tracking-tight font-bold">Feed</span>
+                    </button>
+                    <button id="nav-btn-marketplace" onclick="switchTab('marketplace')" class="flex flex-col items-center justify-center space-y-1 text-slate-400 hover:text-accent-blue transition">
+                        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                        <span class="text-[9px] tracking-tight font-semibold">Market</span>
+                    </button>
+                    <button id="nav-btn-create" onclick="switchTab('create')" class="flex flex-col items-center justify-center space-y-1 text-slate-400 hover:text-accent-blue transition -mt-5 bg-gradient-to-tr from-accent-blue to-accent-purple p-3.5 rounded-full shadow-lg text-white font-black z-20">
+                        <i data-lucide="plus" class="w-5 h-5 text-white"></i>
+                    </button>
+                    <button id="nav-btn-messages" onclick="switchTab('messages')" class="flex flex-col items-center justify-center space-y-1 text-slate-400 hover:text-accent-blue transition">
+                        <div class="relative font-bold">
+                            <i data-lucide="message-square" class="w-5 h-5"></i>
+                            <span class="w-2 h-2 bg-accent-pink rounded-full absolute -top-0.5 -right-0.5 animate-ping"></span>
+                        </div>
+                        <span class="text-[9px] tracking-tight font-semibold">Chat</span>
+                    </button>
+                    <button id="nav-btn-profile" onclick="switchTab('profile')" class="flex flex-col items-center justify-center space-y-1 text-slate-400 hover:text-accent-blue transition">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                        <span class="text-[9px] tracking-tight font-semibold">Profile</span>
+                    </button>
+                </nav>
+
+                <!-- Floating bottom home indicator overlay -->
+                <div class="hidden md:block h-1.5 bg-slate-900 w-full relative shrink-0">
+                    <div class="w-28 h-1 bg-slate-600 rounded-full mx-auto -mt-0.5"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right Column: Interactive sandbox log and telemetry metrics -->
+        <div class="hidden lg:flex lg:col-span-3 flex-col space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-sm text-slate-200">Sandbox Metrics</h3>
+                    <button onclick="resetStore()" class="text-xs text-accent-pink hover:underline font-bold flex items-center gap-1">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear all
+                    </button>
+                </div>
+                <div class="space-y-3.5">
+                    <div class="flex items-center justify-between text-xs bg-slate-950 p-3 rounded-xl border border-slate-850">
+                        <span class="text-slate-400 font-bold">Active user:</span>
+                        <span id="stat-active-user" class="font-mono text-accent-blue font-bold">@sarah_k</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs bg-slate-950 p-3 rounded-xl border border-slate-850">
+                        <span class="text-slate-400 font-bold">Total live posts:</span>
+                        <span id="stat-metric-posts-total" class="font-mono text-slate-200 font-bold">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ZoozPay Transaction Activity Logs slider -->
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex-1 flex flex-col space-y-3">
+                <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                    <i data-lucide="activity" class="w-4 h-4 text-lime-400"></i> ZoozPay Escrow Activity
+                </h3>
+                <div class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-none" id="log-container">
+                    <div class="text-[11px] text-slate-500 italic text-center py-10">No sandbox payment actions tracked yet. Try purchasing an item from the marketplace!</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL: PLACE RETRO STORY VIEWER -->
+    <div id="story-viewer-modal" class="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4 transition duration-300 opacity-0 pointer-events-none">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden relative shadow-2xl flex flex-col h-[650px]">
+            <!-- Close btn -->
+            <button class="absolute top-4 right-4 z-40 bg-black/60 p-2.5 rounded-full text-white hover:bg-black/90 transition" onclick="closeStoryViewer()">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Stories Progress bar indicators -->
+            <div class="w-full flex px-4 pt-4 space-x-1 z-30 shrink-0">
+                <div class="h-1 bg-white/35 flex-1 rounded-full overflow-hidden">
+                    <div class="h-full bg-accent-blue" style="width: 0%;" id="story-progress-bar"></div>
+                </div>
+            </div>
+
+            <!-- Profile and Music display banner -->
+            <div class="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent absolute top-6 left-0 right-0 z-20">
+                <div class="flex items-center space-x-3 text-white">
+                    <img id="story-head-avatar" class="w-9 h-9 rounded-full object-cover border border-white/20" src="" alt="avatar">
+                    <div>
+                        <h4 id="story-head-username" class="text-xs font-bold">Username</h4>
+                        <p id="story-head-time" class="text-[9px] text-slate-300">Authored Story</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rich Content view (image, color block etc) -->
+            <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-slate-950">
+                <!-- Cover Image -->
+                <img id="story-image-bg" class="w-full h-full object-cover opacity-75 absolute inset-0" src="" alt="story">
+                
+                <!-- Spotify widget / Companion -->
+                <div class="absolute bottom-6 left-4 right-4 bg-slate-900/95 border border-slate-800/85 rounded-2xl p-4 flex items-center space-x-3.5 backdrop-blur-md text-white shadow-xl glow-active" id="story-spotify-card">
+                    <div class="relative">
+                        <img id="spotify-card-cover" class="w-12 h-12 rounded-lg border border-slate-800 object-cover" src="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80&auto=format&fit=crop&q=80" alt="">
+                        <div class="absolute bottom-1 right-1 bg-black/80 p-0.5 rounded-full spinning-disk">
+                            <i data-lucide="music" class="w-2.5 h-2.5 text-accent-blue"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <span class="text-[8px] bg-slate-800 border border-slate-700 font-mono tracking-widest uppercase px-2 py-0.5 text-accent-blue rounded-full font-bold">Now Playing</span>
+                        <h5 id="spotify-card-name" class="text-xs font-extrabold truncate mt-1">Track Name</h5>
+                        <p id="spotify-card-artist" class="text-[10px] text-slate-400 truncate">Artist</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-950 p-4 border-t border-slate-800 shrink-0 text-center text-xs text-slate-400">
+                Story companion powered by <span class="font-black text-white">ZOOZ</span> Engine
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL: ADD MARKETPLACE ITEM -->
+    <div id="add-marketplace-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 transition duration-300 opacity-0 pointer-events-none">
+        <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-3xl p-6 svelte-modal shadow-2xl relative space-y-4">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-white" onclick="closeAddMarketplaceItemModal()">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div>
+                <h3 class="text-lg font-bold">List tech item for barter</h3>
+                <p class="text-xs text-slate-400">Create peer listings instantly</p>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-[10px] uppercase tracking-wider font-bold text-slate-400">Item Name</label>
+                    <input type="text" id="market-input-title" placeholder="e.g. Mechanical Keyboard" class="w-full bg-slate-950 border border-slate-800 px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:border-accent-blue text-slate-100">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] uppercase tracking-wider font-bold text-slate-400">Price (USD)</label>
+                        <input type="number" id="market-input-price" placeholder="150" class="w-full bg-slate-950 border border-slate-800 px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:border-accent-blue text-slate-100">
+                    </div>
+                    <div>
+                        <label class="text-[10px] uppercase tracking-wider font-bold text-slate-400">Location</label>
+                        <input type="text" id="market-input-location" placeholder="e.g. San Jose, CA" class="w-full bg-slate-950 border border-slate-800 px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:border-accent-blue text-slate-100">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase tracking-wider font-bold text-slate-400">Item Image URL</label>
+                    <input type="text" id="market-input-image" placeholder="https://unsplash.com/..." class="w-full bg-slate-950 border border-slate-800 px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:border-accent-blue text-slate-100">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase tracking-wider font-bold text-slate-400">Short Description</label>
+                    <input type="text" id="market-input-desc" placeholder="Gently used, linear red switches..." class="w-full bg-slate-950 border border-slate-800 px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:border-accent-blue text-slate-100">
+                </div>
+                <button onclick="submitNewMarketplaceItem()" class="w-full bg-accent-blue hover:bg-blue-600 py-2.5 rounded-xl text-xs font-bold text-white transition mt-2">Publish Listing</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL: ZO0ZPAY SECURE CHECKOUT SANDBOX -->
+    <div id="checkout-modal" class="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4 transition duration-300 opacity-0 pointer-events-none">
+        <div class="bg-slate-950 border border-slate-800 max-w-sm w-full rounded-3xl p-6 shadow-2xl relative space-y-5 text-center">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-white" onclick="closeCheckoutModal()">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center justify-center space-x-2">
+                <div class="bg-lime-500/10 text-lime-400 p-2.5 rounded-full">
+                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+                </div>
+                <div class="text-left">
+                    <span class="text-[9px] uppercase tracking-widest font-mono text-lime-400 font-bold block">ZoozPay Gateway</span>
+                    <h3 class="text-sm font-black text-slate-200">Secure Escrow Validation</h3>
+                </div>
+            </div>
+            
+            <div class="bg-slate-900 border border-slate-850 p-4 rounded-2xl text-left space-y-3">
+                <div class="flex justify-between text-xs border-b border-slate-800 pb-2">
+                    <span class="text-slate-400">Trading item:</span>
+                    <span class="font-bold text-slate-100" id="checkout-item-title">Item Name</span>
+                </div>
+                <div class="flex justify-between text-xs border-b border-slate-800 pb-2">
+                    <span class="text-slate-400">Escrow Agent:</span>
+                    <span class="font-bold text-slate-200">Sophia Lopez (@sophia_dev)</span>
+                </div>
+                <div class="flex justify-between text-xs pb-1">
+                    <span class="text-slate-400">Total Due:</span>
+                    <span class="font-mono text-lime-400 font-bold" id="checkout-price-field">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Funding configuration source -->
+            <div class="text-left space-y-1.5">
+                <p class="text-[10px] text-slate-450 uppercase tracking-wide font-bold">Funding validation credentials</p>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs">
+                    <span class="text-slate-300 font-bold">Wallet Sandbox balance:</span>
+                    <span class="text-slate-200 font-mono" id="checkout-wallet-balance">$1,000.00</span>
+                </div>
+            </div>
+
+            <!-- Trigger Button -->
+            <button onclick="approveSandboxedCheckoutPayment()" class="w-full bg-lime-500 hover:bg-lime-600 font-black text-slate-950 py-3 rounded-2xl text-xs uppercase tracking-wider transition shadow-lg shadow-lime-500/10">
+                Authorize ZoozPay Escrow Hold
+            </button>
+            <p class="text-[9px] text-slate-500 italic">This features a functional sandboxed simulator linking directly to LocalStorage ledger logs.</p>
+        </div>
+    </div>
+
+
+    <!-- APPLET INTERNAL STORAGE ENGINE & DATA LEDGER SCRIPT -->
+    <script>
+        // Preset Initial Database Mock matching high-fidelity Android structure
+        const DEFAULT_CURRENT_USER = {
+            id: 112,
+            username: "sarah_k",
+            display_name: "Sarah K.",
+            bio: "Building aesthetic web companions and styling mobile Android clients in Jetpack Compose.",
+            avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+            wallet_balance: 1250.00
+        };
+
+        const DEFAULT_STORIES = [
+            { id: 1, name: "Chloe", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80", cover: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=80", trackName: "Lo-Fi Midnight", artist: "Android Soundscapes", coverArt: "https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=120&auto=format&fit=crop&q=80", timestamp: Date.now() - 3600000, expiresAt: Date.now() + 82800000 },
+            { id: 2, name: "Marcus", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80", cover: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop&q=80", trackName: "Synthetic Waves", artist: "Holo-Keyboard Pro", coverArt: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&auto=format&fit=crop&q=80", timestamp: Date.now() - 7200000, expiresAt: Date.now() + 79200000 },
+            { id: 3, name: "Sophia", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80", cover: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=500&auto=format&fit=crop&q=80", trackName: "Elevate Mind", artist: "Zen Calm Loops", coverArt: "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=120&auto=format&fit=crop&q=80", timestamp: Date.now() - 10800000, expiresAt: Date.now() + 75600000 }
+        ];
+
+        const DEFAULT_POSTS = [
+            {
+                id: 501,
+                authorName: "Marcus Vance",
+                authorUsername: "marcus_dev",
+                authorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+                title: "Custom Workspace Keyboard",
+                content: "Finished fabricating my linear custom 65% brass mechanical keyboard build. Heavy solid base plates with lubed Gateron ink blacks! Perfect companion for building fast Android modules.",
+                categories: "Tech",
+                tags: "gaming, building, switches",
+                mediaUri: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80,https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=600&auto=format&fit=crop&q=80",
+                clicks: 34
+            },
+            {
+                id: 502,
+                authorName: "Sarah K.",
+                authorUsername: "sarah_k",
+                authorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+                title: "Dynamic Status Bar Concept",
+                content: "Check out this beautiful dark home feed text post displaying our live feedback loop! When there are no image URLs attached, the card shifts into standard typography view equipped with our stylized home placeholder disk rotating.",
+                categories: "Design",
+                tags: "ux, android",
+                mediaUri: "",
+                clicks: 12
+            },
+            {
+                id: 503,
+                authorName: "Alex Mercer",
+                authorUsername: "alex_merc",
+                authorAvatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80",
+                title: "Retro Setup Styling",
+                content: "Just finalized my secondary coding workbench. Stacking vintage CRTs paired with direct Android live emulators. Super high responsiveness!",
+                categories: "Tech",
+                tags: "retro, hardware, workspace",
+                mediaUri: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
+                clicks: 89
+            }
+        ];
+
+        const DEFAULT_MARKET_ITEMS = [
+            { id: 901, title: "Custom Linear Keyboard 65%", price: 120.00, location: "San Francisco, CA", desc: "Linear Red custom lubed keys, high resonance wooden block, perfect quality.", image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400&auto=format&fit=crop&q=80", seller: "alex_merc" },
+            { id: 902, title: "Onyx Desk organizer tray", price: 45.00, location: "Brooklyn, NY", desc: "Premium felt tray base lined with aluminum edges. Minimalist design.", image: "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=400&auto=format&fit=crop&q=80", seller: "marcus_dev" },
+            { id: 903, title: "Holo RGB Desk Mat matting", price: 30.00, location: "San Jose, CA", desc: "Silky texture fiber, premium stitching with custom RGB controls.", image: "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=400&auto=format&fit=crop&q=80", seller: "sarah_k" }
+        ];
+
+        const DEFAULT_CHAT_MESSAGES = {
+            "marcus_dev": [
+                { id: 1, sender: "marcus_dev", text: "Hey! Loved your post about the Jetpack status displays." },
+                { id: 2, sender: "sarah_k", text: "Thanks Marcus! Appreciate your support. How's the brass keyboard holding up?" },
+                { id: 3, sender: "marcus_dev", text: "It's fantastic. Sent some photos on my new post!" }
+            ],
+            "alex_merc": [
+                { id: 1, sender: "alex_merc", text: "Is the C2C custom keycap set still available to hold in ZoozPay?" },
+                { id: 2, sender: "sarah_k", text: "Yes Alex! I have set up the ZoozPay validation gateway on the item. Let me know when you list security holds." }
+            ]
+        };
+
+        const MEDIA_STORE_CAROUSEL_INDEX = {}; // Track active index per post for multi-images
+
+        // Setup persistent storage
+        function getStore(key, defaultValue) {
+            const data = localStorage.getItem("zooz_" + key);
+            return data ? JSON.parse(data) : defaultValue;
+        }
+
+        function setStore(key, val) {
+            localStorage.setItem("zooz_" + key, JSON.stringify(val));
+        }
+
+        let store = {
+            currentUser: getStore("currentUser", DEFAULT_CURRENT_USER),
+            stories: getStore("stories", DEFAULT_STORIES),
+            posts: getStore("posts", DEFAULT_POSTS),
+            marketplaceItems: getStore("marketplaceItems", DEFAULT_MARKET_ITEMS),
+            chatMessages: getStore("chatMessages", DEFAULT_CHAT_MESSAGES),
+            likedPosts: getStore("likedPosts", [501]),
+            bookmarkedPosts: getStore("bookmarkedPosts", [503]),
+            paymentLogs: getStore("paymentLogs", []),
+            attachedCreateUrls: [] // Temporary attachment storage
+        };
+
+        // Current UI Active Tab state
+        let currentTab = "feed"; 
+        let activeStoryInterval = null;
+        let storyProgressVal = 0;
+        let selectedCheckoutItem = null;
+
+        // Initialize App on DOM
+        window.addEventListener('DOMContentLoaded', () => {
+            initApp();
+        });
+
+        function initApp() {
+            lucide.createIcons();
+            renderProfileDetails();
+            renderStories();
+            renderPosts();
+            renderMarketplace();
+            renderChatContacts();
+            renderPaymentLogs();
+            updateGlobalStats();
+        }
+
+        function resetStore() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        function updateGlobalStats() {
+            // Update counts
+            const userPostsCount = store.posts.filter(p => p.authorUsername === store.currentUser.username).length;
+            document.getElementById('stat-posts').innerText = userPostsCount;
+            document.getElementById('stat-likes').innerText = store.likedPosts.length;
+            document.getElementById('stat-saves').innerText = store.bookmarkedPosts.length;
+            
+            document.getElementById('stat-active-user').innerText = "@" + store.currentUser.username;
+            document.getElementById('stat-metric-posts-total').innerText = store.posts.length;
+            document.getElementById('teaser-user').innerText = "@" + store.currentUser.username;
+            document.getElementById('teaser-avatar').src = store.currentUser.avatar;
+        }
+
+        // Global Navigation logic
+        function switchTab(tabId) {
+            currentTab = tabId;
+            
+            // Hide all sub views
+            document.querySelectorAll('.app-view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            // Show target
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+
+            // Reset navigation active styles
+            document.querySelectorAll('#applet-navigation button').forEach(btn => {
+                btn.classList.remove('text-accent-blue');
+                btn.classList.add('text-slate-400');
+            });
+
+            // Adjust icons and buttons
+            const activeBtn = document.getElementById('nav-btn-' + tabId);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400');
+                // The central plus button is special and should stay white
+                if (tabId !== 'create') {
+                    activeBtn.classList.add('text-accent-blue');
+                }
+            }
+
+            // Trigger custom tab routines
+            if (tabId === 'feed') {
+                renderPosts();
+            } else if (tabId === 'profile') {
+                renderProfileDetails();
+            } else if (tabId === 'messages') {
+                renderChatContacts();
+            } else if (tabId === 'marketplace') {
+                renderMarketplace();
+            }
+
+            // Scroll parent viewport element back to top smoothly
+            document.getElementById('applet-viewport').scrollTop = 0;
+        }
+
+        // Stories view functions
+        function renderStories() {
+            const strip = document.getElementById("stories-strip");
+            strip.innerHTML = "";
+            
+            // Render User Add story circle
+            const userStoryCircle = document.createElement("div");
+            userStoryCircle.className = "flex flex-col items-center space-y-1 cursor-pointer shrink-0";
+            userStoryCircle.onclick = () => alert("Story creation is managed on Android app companion! Select other stories to view.");
+            userStoryCircle.innerHTML = `
+                <div class="relative">
+                    <img class="w-14 h-14 rounded-full object-cover border border-slate-700 p-0.5" src="${store.currentUser.avatar}">
+                    <span class="absolute bottom-0 right-0 bg-accent-blue text-white p-0.5 rounded-full border border-slate-900">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    </span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-bold">You</span>
+            `;
+            strip.appendChild(userStoryCircle);
+
+            const now = Date.now();
+            const activeStories = (store.stories || []).filter(story => !story.expiresAt || story.expiresAt > now);
+
+            activeStories.forEach(story => {
+                const item = document.createElement("div");
+                item.className = "flex flex-col items-center space-y-1 cursor-pointer shrink-0 transition hover:scale-[1.05]";
+                item.onclick = () => openStoryViewer(story);
+                item.innerHTML = `
+                    <div class="p-[1.5px] bg-gradient-to-tr from-accent-pink via-accent-purple to-accent-blue rounded-full">
+                        <img class="w-14 h-14 rounded-full object-cover bg-slate-900 border-2 border-slate-900 p-0.5" src="${story.avatar}">
+                    </div>
+                    <span class="text-[10px] text-slate-300 font-semibold">${story.name}</span>
+                `;
+                strip.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function openStoryViewer(story) {
+            const modal = document.getElementById('story-viewer-modal');
+            modal.classList.remove('pointer-events-none', 'opacity-0');
+            modal.classList.add('opacity-100');
+
+            document.getElementById('story-head-avatar').src = story.avatar;
+            document.getElementById('story-head-username').innerText = "@" + story.name.toLowerCase() + "_dev";
+            const remainingHours = story.expiresAt ? Math.max(0, Math.round((story.expiresAt - Date.now()) / 3600000)) : 24;
+            const expiryText = remainingHours > 0 ? `${remainingHours}h left` : '<1h left';
+            document.getElementById('story-head-time').innerText = `Authored Story • ${expiryText}`;
+            document.getElementById('story-image-bg').src = story.cover;
+            
+            // Spotify Widget Display
+            document.getElementById('spotify-card-cover').src = story.coverArt;
+            document.getElementById('spotify-card-name').innerText = story.trackName;
+            document.getElementById('spotify-card-artist').innerText = story.artist;
+
+            // Trigger progress bar
+            storyProgressVal = 0;
+            const bar = document.getElementById('story-progress-bar');
+            bar.style.width = '0%';
+
+            if (activeStoryInterval) clearInterval(activeStoryInterval);
+
+            activeStoryInterval = setInterval(() => {
+                storyProgressVal += 1.5;
+                bar.style.width = storyProgressVal + '%';
+                if (storyProgressVal >= 100) {
+                    closeStoryViewer();
+                }
+            }, 50);
+        }
+
+        function closeStoryViewer() {
+            const modal = document.getElementById('story-viewer-modal');
+            modal.classList.add('pointer-events-none', 'opacity-0');
+            modal.classList.remove('opacity-100');
+            if (activeStoryInterval) {
+                clearInterval(activeStoryInterval);
+                activeStoryInterval = null;
+            }
+        }
+
+        // Render feed posts with support for multi images carousel and text-only templates with custom spinning audio disk
+        function renderPosts() {
+            const container = document.getElementById("posts-container");
+            container.innerHTML = "";
+
+            if (store.posts.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 text-slate-500 italic space-y-2">
+                        <i data-lucide="feed" class="w-8 h-8 mx-auto text-slate-600"></i>
+                        <p>No feed posts found. Create the very first post using the plus tab!</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            store.posts.forEach(post => {
+                // Initialize active carousel index if not present
+                if (MEDIA_STORE_CAROUSEL_INDEX[post.id] === undefined) {
+                    MEDIA_STORE_CAROUSEL_INDEX[post.id] = 0;
+                }
+
+                // Check active media items
+                const uris = post.mediaUri ? post.mediaUri.split(",").filter(u => u.trim() !== "") : [];
+                const hasMedia = uris.length > 0;
+                const activeMediaIdx = MEDIA_STORE_CAROUSEL_INDEX[post.id];
+
+                // Check if user liked/bookmarked
+                const isLiked = store.likedPosts.includes(post.id);
+                const isSaved = store.bookmarkedPosts.includes(post.id);
+
+                const postCard = document.createElement("div");
+                postCard.className = "bg-slate-900 border border-slate-800/80 rounded-3xl p-5 space-y-4 shadow-sm hover:border-slate-800 transition flex flex-col";
+                
+                // Card header with author
+                let headerHtml = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img class="w-10 h-10 rounded-full object-cover border border-slate-800" src="${post.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}" alt="Avatar">
+                            <div>
+                                <div class="flex items-center space-x-1.5">
+                                    <h4 class="text-xs font-extrabold text-slate-100">${post.authorName}</h4>
+                                    <span class="text-[9px] bg-slate-800 border border-slate-750 px-2 py-0.5 rounded-full text-slate-400 font-mono">@${post.authorUsername}</span>
+                                </div>
+                                <p class="text-[10px] text-slate-500">Just now • Zooz Mobile App</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[10px] bg-accent-blue/10 border border-accent-blue/20 text-accent-blue font-bold px-2.5 py-0.5 rounded-full capitalize">${post.categories}</span>
+                        </div>
+                    </div>
+                `;
+
+                // Body content: text and title
+                let bodyHtml = `
+                    <div class="space-y-1">
+                        <h3 class="text-sm font-bold text-slate-100">${post.title}</h3>
+                        <p class="text-xs text-slate-350 leading-relaxed">${post.content}</p>
+                    </div>
+                `;
+
+                // Media display area (Supporting CAROUSEL for multiple visual items!)
+                let mediaHtml = "";
+                if (hasMedia) {
+                    const currentUri = uris[activeMediaIdx];
+                    const leftBtnHidden = activeMediaIdx === 0 ? "hidden" : "";
+                    const rightBtnHidden = activeMediaIdx === uris.length - 1 ? "hidden" : "";
+
+                    // Media Counter Dot/Badge
+                    const counterBadge = uris.length > 1 ? `
+                        <div class="absolute top-2.5 right-2.5 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-zinc-100 font-mono tracking-wider font-bold">
+                            ${activeMediaIdx + 1} / ${uris.length}
+                        </div>
+                    ` : "";
+
+                    // Slide Navigation Arrows
+                    const carouselNav = uris.length > 1 ? `
+                        <button onclick="navigateCarousel(${post.id}, -1, event)" class="${leftBtnHidden} absolute left-2.5 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-slate-900 border border-slate-800/80 p-1.5 text-zinc-100 transition rounded-full z-10">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="navigateCarousel(${post.id}, 1, event)" class="${rightBtnHidden} absolute right-2.5 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-slate-900 border border-slate-800/80 p-1.5 text-zinc-100 transition rounded-full z-10">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    ` : "";
+
+                    mediaHtml = `
+                        <div class="relative bg-slate-950 rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center border border-slate-850">
+                            ${counterBadge}
+                            ${carouselNav}
+                            <img class="w-full h-full object-cover" src="${currentUri}" alt="Feed Media">
+                        </div>
+                    `;
+                } else {
+                    // TEXT CONTEXT POST WITH THE REQUIRED ROTATING SPINNING DISK PLACEHOLDER
+                    // "default spinning disk placeholder but body message should be not the caption in homefeed for text based post"
+                    mediaHtml = `
+                        <div class="bg-gradient-to-tr from-slate-950 to-slate-900 border border-slate-850 p-6 rounded-2xl flex items-center justify-between shadow-inner">
+                            <div class="space-y-1.5 flex-1 pr-3">
+                                <span class="text-[9px] text-accent-pink uppercase font-mono tracking-widest font-extrabold flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 bg-accent-pink rounded-full animate-ping"></span> Text Feed Stream
+                                </span>
+                                <h4 class="text-xs font-extrabold text-slate-100">Zooz Music Companion</h4>
+                                <p class="text-[10px] text-slate-400">Interact with authors live using custom direct messaging and bartering panels.</p>
+                            </div>
+                            <div class="relative shrink-0 flex items-center justify-center">
+                                <div class="absolute -inset-1 bg-gradient-to-tr from-accent-blue to-accent-pink rounded-full blur-[6px] opacity-40 animate-pulse"></div>
+                                <div class="w-14 h-14 rounded-full bg-slate-900 border-2 border-slate-800 flex items-center justify-center spinning-disk relative shadow-md">
+                                    <div class="w-10 h-10 rounded-full border-2 border-dashed border-accent-blue flex items-center justify-center">
+                                        <div class="w-4 h-4 rounded-full bg-accent-pink"></div>
+                                    </div>
+                                    <!-- Inner pin point -->
+                                    <span class="w-1 h-1 bg-slate-900 rounded-full absolute"></span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Tags strip
+                const tagsList = post.tags ? post.tags.split(",").map(t => t.trim()).filter(t => t !== "") : [];
+                let tagsHtml = "";
+                if (tagsList.length > 0) {
+                    tagsHtml = `
+                        <div class="flex items-center flex-wrap gap-1.5 pt-1">
+                            ${tagsList.map(tag => `<span class="text-[10px] bg-slate-950 border border-slate-850 px-2 py-0.5 rounded-md text-slate-450 hover:text-accent-blue cursor-pointer">#${tag}</span>`).join("")}
+                        </div>
+                    `;
+                }
+
+                // Card actions: Like, Comment count placeholder (clicking scrolls to chat)
+                let actionsHtml = `
+                    <div class="h-px bg-slate-800/60 pt-1"></div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs pt-1.5">
+                        <button onclick="togglePostLike(${post.id})" class="flex items-center space-x-1.5 hover:text-accent-pink transition font-semibold ${isLiked ? 'text-accent-pink font-bold' : ''}">
+                            <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-accent-pink text-accent-pink' : ''}"></i>
+                            <span>${isLiked ? 'Liked' : 'Like'}</span>
+                        </button>
+                        <button onclick="alert('Accessing replies. This screen is live-simulated in Direct Messages!')" class="flex items-center space-x-1.5 hover:text-accent-blue transition font-semibold">
+                            <i data-lucide="message-square" class="w-4 h-4"></i>
+                            <span>Comment</span>
+                        </button>
+                        <button onclick="togglePostBookmark(${post.id})" class="flex items-center space-x-1.5 hover:text-accent-blue transition font-semibold ${isSaved ? 'text-accent-blue font-bold' : ''}">
+                            <i data-lucide="bookmark" class="w-4 h-4 ${isSaved ? 'fill-accent-blue text-accent-blue' : ''}"></i>
+                            <span>${isSaved ? 'Bookmarked' : 'Save'}</span>
+                        </button>
+                    </div>
+                `;
+
+                postCard.innerHTML = headerHtml + bodyHtml + mediaHtml + tagsHtml + actionsHtml;
+                container.appendChild(postCard);
+            });
+            lucide.createIcons();
+        }
+
+        // Carousel scrolling navigation
+        function navigateCarousel(postId, direction, event) {
+            if (event) event.stopPropagation(); // Stop general modal card triggers
+            const post = store.posts.find(p => p.id === postId);
+            if (!post) return;
+            const uris = post.mediaUri.split(",").filter(u => u.trim() !== "");
+            let currentIdx = MEDIA_STORE_CAROUSEL_INDEX[postId] || 0;
+            currentIdx += direction;
+            if (currentIdx < 0) currentIdx = 0;
+            if (currentIdx >= uris.length) currentIdx = uris.length - 1;
+            MEDIA_STORE_CAROUSEL_INDEX[postId] = currentIdx;
+            renderPosts();
+        }
+
+        function togglePostLike(postId) {
+            const idx = store.likedPosts.indexOf(postId);
+            if (idx === -1) {
+                store.likedPosts.push(postId);
+            } else {
+                store.likedPosts.splice(idx, 1);
+            }
+            setStore("likedPosts", store.likedPosts);
+            renderPosts();
+            updateGlobalStats();
+        }
+
+        function togglePostBookmark(postId) {
+            const idx = store.bookmarkedPosts.indexOf(postId);
+            if (idx === -1) {
+                store.bookmarkedPosts.push(postId);
+            } else {
+                store.bookmarkedPosts.splice(idx, 1);
+            }
+            setStore("bookmarkedPosts", store.bookmarkedPosts);
+            renderPosts();
+            updateGlobalStats();
+        }
+
+        // Create Post actions with attachment lists
+        function addAttachedMediaUrl() {
+            const input = document.getElementById("input-media-url");
+            const url = input.value.trim();
+            if (!url) return;
+            store.attachedCreateUrls.push(url);
+            input.value = "";
+            renderAttachedPreviews();
+        }
+
+        function renderAttachedPreviews() {
+            const previewWrapper = document.getElementById("attach-preview-wrapper");
+            const list = document.getElementById("attach-preview-list");
+            list.innerHTML = "";
+
+            if (store.attachedCreateUrls.length === 0) {
+                previewWrapper.classList.add("hidden");
+                return;
+            }
+
+            previewWrapper.classList.remove("hidden");
+            store.attachedCreateUrls.forEach((url, idx) => {
+                const item = document.createElement("div");
+                item.className = "relative width-[70px] height-[70px] shrink-0 rounded-xl overflow-hidden border border-slate-800 bg-slate-900";
+                item.style.width = "70px";
+                item.style.height = "70px";
+                item.innerHTML = `
+                    <img class="w-full h-full object-cover" src="${url}">
+                    <button onclick="removeAttachedPreview(${idx})" class="absolute top-1 right-1 bg-black/80 hover:bg-black p-0.5 rounded-full text-white">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function removeAttachedPreview(idx) {
+            store.attachedCreateUrls.splice(idx, 1);
+            renderAttachedPreviews();
+        }
+
+        function createPostSubmit() {
+            const title = document.getElementById("input-post-title").value.trim();
+            const category = document.getElementById("input-post-category").value;
+            const tags = document.getElementById("input-post-tags").value.trim();
+            const content = document.getElementById("input-post-content").value.trim();
+
+            if (!title || !content) {
+                alert("Please cover both Post Title and Post Content blocks!");
+                return;
+            }
+
+            const mediaUriString = store.attachedCreateUrls.join(",");
+
+            const newPost = {
+                id: Date.now(),
+                authorName: store.currentUser.display_name,
+                authorUsername: store.currentUser.username,
+                authorAvatar: store.currentUser.avatar,
+                title: title,
+                content: content,
+                categories: category,
+                tags: tags,
+                mediaUri: mediaUriString,
+                clicks: 0
+            };
+
+            store.posts.unshift(newPost);
+            setStore("posts", store.posts);
+
+            // Reset create forms
+            document.getElementById("input-post-title").value = "";
+            document.getElementById("input-post-tags").value = "";
+            document.getElementById("input-post-content").value = "";
+            store.attachedCreateUrls = [];
+            renderAttachedPreviews();
+
+            updateGlobalStats();
+            alert("Success! Your post with the custom multi-file attachments has been published.");
+            switchTab("feed");
+        }
+
+        // Local C2C Marketplace methods
+        function renderMarketplace() {
+            const grid = document.getElementById("marketplace-grid");
+            grid.innerHTML = "";
+            const searchQuery = document.getElementById("market-search").value.toLowerCase();
+
+            const items = store.marketplaceItems.filter(item => {
+                return item.title.toLowerCase().includes(searchQuery) || item.desc.toLowerCase().includes(searchQuery);
+            });
+
+            if (items.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-2 text-center py-20 text-slate-500 italic space-y-2">
+                        <i data-lucide="package-search" class="w-10 h-10 mx-auto text-slate-600 animate-bounce"></i>
+                        <p>No compatible peer trade items match your query.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            items.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "bg-slate-950 border border-slate-850 rounded-2xl overflow-hidden hover:border-slate-800 transition flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <div class="relative aspect-video w-full overflow-hidden bg-slate-900">
+                            <img class="w-full h-full object-cover" src="${item.image}">
+                            <span class="absolute bottom-2 left-2 bg-slate-950/85 backdrop-blur px-2 py-0.5 rounded text-[9px] text-slate-400 font-semibold font-mono">@${item.seller}</span>
+                        </div>
+                        <div class="p-3.5 space-y-1">
+                            <span class="text-[9px] uppercase tracking-wider font-extrabold text-lime-400 font-mono flex items-center gap-1">
+                                <i data-lucide="map-pin" class="w-2.5 h-2.5"></i> ${item.location}
+                            </span>
+                            <h4 class="text-xs font-bold text-slate-200 line-clamp-1">${item.title}</h4>
+                            <p class="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">${item.desc}</p>
+                        </div>
+                    </div>
+                    <div class="p-3.5 pt-0 flex items-center justify-between">
+                        <span class="text-xs font-mono font-bold text-lime-400">$${item.price.toFixed(2)}</span>
+                        <button onclick="triggerSecureBuyModal(${item.id})" class="bg-lime-500 hover:bg-lime-600 font-bold border border-lime-500/20 text-slate-950 hover:text-black py-1 px-3 rounded-lg text-[10px] transition">
+                            Buy Now
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function openAddMarketplaceItemModal() {
+            const modal = document.getElementById('add-marketplace-modal');
+            modal.classList.remove('pointer-events-none', 'opacity-0');
+            modal.classList.add('opacity-100');
+        }
+
+        function closeAddMarketplaceItemModal() {
+            const modal = document.getElementById('add-marketplace-modal');
+            modal.classList.add('pointer-events-none', 'opacity-0');
+            modal.classList.remove('opacity-100');
+        }
+
+        function submitNewMarketplaceItem() {
+            const title = document.getElementById('market-input-title').value.trim();
+            const priceVal = parseFloat(document.getElementById('market-input-price').value);
+            const locationVal = document.getElementById('market-input-location').value.trim();
+            const imageVal = document.getElementById('market-input-image').value.trim();
+            const descVal = document.getElementById('market-input-desc').value.trim();
+
+            if (!title || isNaN(priceVal) || !imageVal) {
+                alert("Provide item title, numerical price, and primary image link!");
+                return;
+            }
+
+            const newItem = {
+                id: Date.now(),
+                title: title,
+                price: priceVal,
+                location: locationVal || "San Jose, CA",
+                desc: descVal || "Perfect working condition tech piece.",
+                image: imageVal,
+                seller: store.currentUser.username
+            };
+
+            store.marketplaceItems.unshift(newItem);
+            setStore("marketplaceItems", store.marketplaceItems);
+
+            document.getElementById('market-input-title').value = "";
+            document.getElementById('market-input-price').value = "";
+            document.getElementById('market-input-location').value = "";
+            document.getElementById('market-input-image').value = "";
+            document.getElementById('market-input-desc').value = "";
+
+            closeAddMarketplaceItemModal();
+            renderMarketplace();
+            alert("Listed! Your item is now discoverable in the peer-to-peer sandbox marketplace.");
+        }
+
+        // ZoozPay sandbox gate methods
+        function triggerSecureBuyModal(itemId) {
+            const item = store.marketplaceItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            selectedCheckoutItem = item;
+            
+            document.getElementById('checkout-item-title').innerText = item.title;
+            document.getElementById('checkout-price-field').innerText = "$" + item.price.toFixed(2);
+            document.getElementById('checkout-wallet-balance').innerText = "$" + store.currentUser.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+            const modal = document.getElementById('checkout-modal');
+            modal.classList.remove('pointer-events-none', 'opacity-0');
+            modal.classList.add('opacity-100');
+        }
+
+        function closeCheckoutModal() {
+            const modal = document.getElementById('checkout-modal');
+            modal.classList.add('pointer-events-none', 'opacity-0');
+            modal.classList.remove('opacity-100');
+            selectedCheckoutItem = null;
+        }
+
+        function approveSandboxedCheckoutPayment() {
+            if (!selectedCheckoutItem) return;
+
+            const itemPrice = selectedCheckoutItem.price;
+            if (store.currentUser.wallet_balance < itemPrice) {
+                alert("Insufficient funding in developer wallet sandbox! Update balance under user configuration first.");
+                return;
+            }
+
+            // Deduct funds
+            store.currentUser.wallet_balance -= itemPrice;
+            setStore("currentUser", store.currentUser);
+
+            // Record escrow ledger log
+            const logId = "TX-" + Math.floor(100000 + Math.random() * 900000);
+            const newLog = {
+                id: logId,
+                itemTitle: selectedCheckoutItem.title,
+                price: itemPrice,
+                seller: selectedCheckoutItem.seller,
+                timestamp: new Date().toISOString()
+            };
+
+            store.paymentLogs.unshift(newLog);
+            setStore("paymentLogs", store.paymentLogs);
+
+            closeCheckoutModal();
+            renderProfileDetails();
+            renderPaymentLogs();
+            updateGlobalStats();
+
+            alert(`Escrow Successful!\nHold authorized for Log Entry: ${logId}\nFund allocation is now locked under transaction state.`);
+        }
+
+        function renderPaymentLogs() {
+            const container = document.getElementById("log-container");
+            container.innerHTML = "";
+
+            if (store.paymentLogs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-[11px] text-slate-500 italic text-center py-10">
+                        No sandbox transactions logged yet. Try buying an item!
+                    </div>
+                `;
+                return;
+            }
+
+            store.paymentLogs.forEach(log => {
+                const item = document.createElement("div");
+                item.className = "bg-slate-950 border border-slate-850 p-3 rounded-2xl text-[11px] space-y-1.5 flex flex-col";
+                item.innerHTML = `
+                    <div class="flex items-center justify-between font-mono font-bold text-accent-blue">
+                        <span>${log.id}</span>
+                        <span class="text-lime-400">$${log.price.toFixed(2)}</span>
+                    </div>
+                    <div class="text-slate-300">Bought: <span class="font-bold text-white">${log.itemTitle}</span></div>
+                    <div class="flex items-center justify-between text-slate-500 text-[10px]">
+                        <span>Seller: @${log.seller}</span>
+                        <span>Authorized hold</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Encrypted Chat Sandbox methods
+        let activeChatUsername = "marcus_dev";
+
+        function renderChatContacts() {
+            const strip = document.getElementById("chat-contacts-strip");
+            strip.innerHTML = "";
+
+            // List unique blog authors
+            const contacts = [
+                { username: "marcus_dev", name: "Marcus V.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" },
+                { username: "alex_merc", name: "Alex M.", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80" },
+                { username: "chloe_t", name: "Chloe T.", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80" }
+            ];
+
+            contacts.forEach(contact => {
+                const isActive = activeChatUsername === contact.username;
+                const contactEl = document.createElement("button");
+                contactEl.onclick = () => selectActiveChatPartner(contact.username);
+                contactEl.className = `flex items-center space-x-2.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition shrink-0 ${
+                    isActive ? 'bg-accent-blue border-accent-blue text-white' : 'bg-slate-950 border-slate-850 text-slate-350 hover:border-slate-800'
+                }`;
+                contactEl.innerHTML = `
+                    <img class="w-5 h-5 rounded-full object-cover" src="${contact.avatar}">
+                    <span>${contact.name}</span>
+                `;
+                strip.appendChild(contactEl);
+            });
+
+            renderActiveChatBox();
+        }
+
+        function selectActiveChatPartner(username) {
+            activeChatUsername = username;
+            renderChatContacts();
+        }
+
+        function renderActiveChatBox() {
+            const partnerInfo = {
+                "marcus_dev": { name: "Marcus Vance (@marcus_dev)", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" },
+                "alex_merc": { name: "Alex Mercer (@alex_merc)", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80" },
+                "chloe_t": { name: "Chloe Travis (@chloe_t)", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80" }
+            };
+
+            const details = partnerInfo[activeChatUsername];
+            document.getElementById("active-chat-avatar").src = details.avatar;
+            document.getElementById("active-chat-username").innerText = details.name;
+
+            const chatMessages = store.chatMessages[activeChatUsername] || [];
+            const container = document.getElementById("chat-messages-container");
+            container.innerHTML = "";
+
+            if (chatMessages.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 text-slate-500 italic text-[11px] space-y-1">
+                        <i data-lucide="lock" class="w-5 h-5 mx-auto text-slate-650"></i>
+                        <p>Starting encrypted sandbox communication with @${activeChatUsername}</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            chatMessages.forEach(msg => {
+                const isMe = msg.sender === store.currentUser.username;
+                const alignment = isMe ? 'justify-end' : 'justify-start';
+                const bodyBg = isMe ? 'bg-accent-blue text-white rounded-br-none' : 'bg-slate-950 border border-slate-850 text-slate-200 rounded-bl-none';
+                
+                const wrapper = document.createElement("div");
+                wrapper.className = `flex ${alignment} text-xs w-full`;
+                wrapper.innerHTML = `
+                    <div class="max-w-[80%] p-3 rounded-2xl space-y-1 ${bodyBg}">
+                        <p class="leading-relaxed whitespace-pre-wrap">${escapeHTML(msg.text)}</p>
+                        <span class="text-[8px] opacity-70 block text-right">Just now • Encrypted</span>
+                    </div>
+                `;
+                container.appendChild(wrapper);
+            });
+
+            // Smooth scroll to chat bottom
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
+        }
+
+        function handleChatKeydown(e) {
+            if (e.key === "Enter") {
+                sendChatMessage();
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById("chat-entry-input");
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (!store.chatMessages[activeChatUsername]) {
+                store.chatMessages[activeChatUsername] = [];
+            }
+
+            // User Message
+            store.chatMessages[activeChatUsername].push({
+                id: Date.now(),
+                sender: store.currentUser.username,
+                text: text
+            });
+
+            setStore("chatMessages", store.chatMessages);
+            input.value = "";
+            renderActiveChatBox();
+
+            // Setup automated peer reply to feel interactive & dynamic
+            setTimeout(() => {
+                const autoReplies = {
+                    "marcus_dev": [
+                        "I am refining our material status bars in Kotlin now!",
+                        "Super neat interface you built here Sarah. The transitions look incredibly fluid.",
+                        "Have you checked out the custom spinning placeholder disk code? Outstanding optimization!"
+                    ],
+                    "alex_merc": [
+                        "Sounds like a fantastic strategy. Let me fund the sandbox transaction with ZoozPay right now.",
+                        "Are the images showing properly on the double multi-media post sliders?",
+                        "Perfect! Our responsive web preview viewport executes extremely fast."
+                    ],
+                    "chloe_t": [
+                        "Hey there! Love accessing our unified authorization dashboard.",
+                        "Can you push the latest compiled release code build? Excellent quality work."
+                    ]
+                };
+
+                const replies = autoReplies[activeChatUsername] || ["Received! Encrypted feedback loop logged."];
+                const selectedReply = replies[Math.floor(Math.random() * replies.length)];
+
+                store.chatMessages[activeChatUsername].push({
+                    id: Date.now() + 1,
+                    sender: activeChatUsername,
+                    text: selectedReply
+                });
+                
+                setStore("chatMessages", store.chatMessages);
+                renderActiveChatBox();
+            }, 1000);
+        }
+
+        // Profile details setup
+        function renderProfileDetails() {
+            document.getElementById('profile-avatar').src = store.currentUser.avatar;
+            document.getElementById('profile-display-name').innerText = store.currentUser.display_name;
+            document.getElementById('profile-display-username').innerText = "@" + store.currentUser.username;
+            document.getElementById('profile-display-bio').innerText = store.currentUser.bio;
+            document.getElementById('profile-wallet').innerText = "$" + store.currentUser.wallet_balance.toLocaleString('en-US', { minimumFractionDigits: 2 });
+            
+            // Filter custom list of posts authored by this user
+            const pGrid = document.getElementById("profile-posts-grid");
+            pGrid.innerHTML = "";
+
+            const authored = store.posts.filter(p => p.authorUsername === store.currentUser.username);
+
+            if (authored.length === 0) {
+                pGrid.innerHTML = `
+                    <div class="col-span-2 text-center py-10 text-slate-500 italic text-[11px]">
+                        No posts authored yet. Use the Create Tab!
+                    </div>
+                `;
+                return;
+            }
+
+            authored.forEach(post => {
+                const uris = post.mediaUri ? post.mediaUri.split(",") : [];
+                const mainCover = uris.length > 0 ? uris[0] : "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80";
+                
+                const card = document.createElement("div");
+                card.className = "bg-slate-950 border border-slate-850 rounded-xl overflow-hidden cursor-pointer hover:border-slate-800 transition";
+                card.onclick = () => switchTab("feed");
+                card.innerHTML = `
+                    <div class="aspect-video w-full bg-slate-900 relative">
+                        <img class="w-full h-full object-cover" src="${mainCover}">
+                        <div class="absolute bottom-1 right-1 bg-black/85 px-1.5 py-0.5 rounded text-[8px] text-slate-400 font-mono capitalize">${post.categories}</div>
+                    </div>
+                    <div class="p-2.5">
+                        <h4 class="text-[11px] font-bold text-slate-200 truncate">${post.title}</h4>
+                        <p class="text-[9px] text-slate-500 truncate">${post.content}</p>
+                    </div>
+                `;
+                pGrid.appendChild(card);
+            });
+        }
+
+        function handleUserRegistration() {
+            const user = document.getElementById("reg-username").value.trim().toLowerCase();
+            const disp = document.getElementById("reg-displayname").value.trim();
+            const bio = document.getElementById("reg-bio").value.trim();
+
+            if (!user || !disp) {
+                alert("Please provide at least a Username and Display Name!");
+                return;
+            }
+
+            store.currentUser.username = user;
+            store.currentUser.display_name = disp;
+            if (bio) store.currentUser.bio = bio;
+
+            setStore("currentUser", store.currentUser);
+
+            // Clear inputs
+            document.getElementById("reg-username").value = "";
+            document.getElementById("reg-displayname").value = "";
+            document.getElementById("reg-bio").value = "";
+
+            renderProfileDetails();
+            updateGlobalStats();
+            alert("Sandbox user identity updated successfully! Active session re-configured.");
+        }
+
+        // Helper utils
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>

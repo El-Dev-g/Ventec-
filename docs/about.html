@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Zooz - Seamless Social & Marketplace Platform</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Material Icons for visual feedback -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <style>
+        /* Custom premium styling specifically optimized for the redesigned About screen */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 60px;
+            width: 100%;
+            margin-top: 30px;
+            align-items: center;
+        }
+
+        /* Override standard flex main context for detailed content flows */
+        main.about-main {
+            display: block;
+            padding: 40px 0;
+        }
+
+        .about-hero {
+            padding-right: 10px;
+        }
+
+        .about-title {
+            font-size: 3.2rem;
+            font-weight: 900;
+            line-height: 1.15;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .about-highlight {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .about-text {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            line-height: 1.7;
+        }
+
+        /* Modern Stat Badge Section */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 20px 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Ecosystem Pillar Sections */
+        .pillars-section {
+            margin-top: 80px;
+            padding-top: 50px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-tag {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .section-heading {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .pillars-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .pillar-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            display: flex;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .pillar-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            border-color: rgba(98, 0, 238, 0.15);
+        }
+
+        .pillar-icon {
+            color: var(--primary-color);
+            background: rgba(98, 0, 238, 0.05);
+            padding: 15px;
+            border-radius: 14px;
+            height: fit-content;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pillar-details h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .pillar-details p {
+            font-size: 0.98rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Banner Illustration Box */
+        .preview-canvas {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .preview-canvas img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .preview-canvas img:hover {
+            transform: scale(1.02);
+        }
+
+        /* Decorative Float Elements */
+        .tech-badge {
+            position: absolute;
+            bottom: -15px;
+            right: 20px;
+            background: #000000;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            animation: floatBadge 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes floatBadge {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-8px); }
+        }
+
+        /* Responsive Breakdowns */
+        @media (max-width: 900px) {
+            .about-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            .about-hero {
+                text-align: center;
+                padding-right: 0;
+            }
+            .about-title {
+                font-size: 2.6rem;
+            }
+            .stats-container {
+                gap: 15px;
+            }
+            .pillars-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <a href="index.html" class="brand">
+                <span class="brand-z-blue">z</span><span class="brand-o-red">o</span><span class="brand-o-yellow">o</span><span class="brand-z-green">z</span>
+            </a>
+            <ul>
+                <li><a href="about.html" style="color: var(--primary-color);">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="index.html#download">Download</a></li>
+            </ul>
+        </nav>
+        
+        <main class="about-main">
+            <div class="about-grid">
+                
+                <!-- Left Column: Vision & Introduction -->
+                <div class="about-hero">
+                    <h1 class="about-title">Bringing people and opportunities together.</h1>
+                    <p class="about-highlight">Zooz is a unified dynamic ecosystem engineered for rapid local exploration, global networking, and secure transactions.</p>
+                    <p class="about-text">Whether you are listing high-quality peer listings on our C2C Local Marketplace, synchronizing online inventory with Commerce Manager, processing secure deposits using ZoozPay Escrow, or personalizing feeds with Gemini AI Plugins, Zooz delivers speed, privacy, and performance across both Android and progressive web canvases.</p>
+                    
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-number">1+ Million</div>
+                            <div class="stat-label">Transactions</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">16 Unit</div>
+                            <div class="stat-label">API Products</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">4 Hour</div>
+                            <div class="stat-label">Response SLA</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Visual Adaptive Presentation Block -->
+                <div class="preview-canvas">
+                    <img src="app_banner.png" alt="Zooz Mobile & Web Experience" />
+                    <div class="tech-badge">
+                        <span class="material-icons-outlined" style="color:#FBBC05; font-size:18px">android</span> Android &amp; Next.js Companion
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Pillars section (Integrations) -->
+            <section class="pillars-section">
+                <div class="section-header">
+                    <span class="section-tag">Core Capabilities</span>
+                    <h2 class="section-heading">Built on Robust Architecture</h2>
+                </div>
+
+                <div class="pillars-grid">
+                    <!-- Pillar 1 -->
+                    <div class="pillar-card">
+                        <div class="pillar-icon">
+                            <span class="material-icons-outlined">payments</span>
+                        </div>
+                        <div class="pillar-details">
+                            <h3>ZoozPay &amp; Secure Escrow</h3>
+                            <p>An enterprise-grade, lightweight checkout module supporting secure buyer holds, dynamic merchant commissions, and webhook notifications for multi-party operations.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pillar 2 -->
+                    <div class="pillar-card">
+                        <div class="pillar-icon">
+                            <span class="material-icons-outlined">psychology</span>
+                        </div>
+                        <div class="pillar-details">
+                            <h3>Gemini Intelligence Engine</h3>
+                            <p>Advanced sandbox dashboard controls allowing developer configuration overrides to manage automation bots, automated customer care tags, and safety monitoring metrics.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pillar 3 -->
+                    <div class="pillar-card">
+                        <div class="pillar-icon">
+                            <span class="material-icons-outlined">storefront</span>
+                        </div>
+                        <div class="pillar-details">
+                            <h3>Commerce Manager</h3>
+                            <p>Seamlessly integrate external stores (WooCommerce, Shopify) with automated catalog tracking, listing updates, and local peer listings.</p>
+                        </div>
+                    </div>
+
+                    <!-- Pillar 4 -->
+                    <div class="pillar-card">
+                        <div class="pillar-icon">
+                            <span class="material-icons-outlined">gpp_good</span>
+                        </div>
+                        <div class="pillar-details">
+                            <h3>Trust, Safety &amp; Control</h3>
+                            <p>Advanced moderation triggers monitoring transactions, and analyzing flag logs dynamically to secure community hubs.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>&copy; 2026 Zooz Application. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>

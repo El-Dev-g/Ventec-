@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-hex: #0f172a;
+  --background-hex: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-hex: #f8fafc;
+    --background-hex: #0f172a;
+  }
+}
+
+body {
+  color: var(--foreground-hex);
+  background: var(--background-hex);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}

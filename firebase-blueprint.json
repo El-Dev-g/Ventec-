@@ -1,0 +1,144 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in the Zooz social ecosystem",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Local and global identifier" },
+        "username": { "type": "string", "description": "Display username" },
+        "fullName": { "type": "string", "description": "User's full name" },
+        "bio": { "type": "string", "description": "Short bio" },
+        "profilePicUri": { "type": "string", "description": "Profile picture URL" },
+        "lastSeen": { "type": "integer", "description": "Last seen epoch timestamp" }
+      },
+      "required": ["id", "username"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Social blog post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Post identifier" },
+        "authorId": { "type": "integer", "description": "Author user identifier" },
+        "authorName": { "type": "string", "description": "Author display username" },
+        "title": { "type": "string", "description": "Post title" },
+        "content": { "type": "string", "description": "Post body content" },
+        "timestamp": { "type": "integer", "description": "Creation timestamp" }
+      },
+      "required": ["id", "authorId", "title", "content"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Comment on a blog post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Comment identifier" },
+        "postId": { "type": "integer", "description": "Target post ID" },
+        "authorId": { "type": "integer", "description": "Author user identifier" },
+        "content": { "type": "string", "description": "Comment content" },
+        "timestamp": { "type": "integer", "description": "Creation timestamp" }
+      },
+      "required": ["id", "postId", "authorId", "content"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "Ephemeral 24h story",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Story identifier" },
+        "authorId": { "type": "integer", "description": "Author user identifier" },
+        "timestamp": { "type": "integer", "description": "Creation timestamp" }
+      },
+      "required": ["id", "authorId"]
+    },
+    "Like": {
+      "title": "Like",
+      "description": "Post like",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Like identifier" },
+        "userId": { "type": "integer", "description": "User identifier" },
+        "postId": { "type": "integer", "description": "Post identifier" }
+      },
+      "required": ["id", "userId", "postId"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "Bookmarked post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Bookmark identifier" },
+        "userId": { "type": "integer", "description": "User identifier" },
+        "postId": { "type": "integer", "description": "Post identifier" }
+      },
+      "required": ["id", "userId", "postId"]
+    },
+    "Follow": {
+      "title": "Follow",
+      "description": "Follow relationship between users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Follow identifier" },
+        "followerId": { "type": "integer", "description": "Follower user identifier" },
+        "followingId": { "type": "integer", "description": "Following user identifier" }
+      },
+      "required": ["id", "followerId", "followingId"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Direct chat message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer", "description": "Message identifier" },
+        "senderId": { "type": "integer", "description": "Sender user identifier" },
+        "receiverId": { "type": "integer", "description": "Receiver user identifier" },
+        "text": { "type": "string", "description": "Message text" },
+        "timestamp": { "type": "integer", "description": "Timestamp" }
+      },
+      "required": ["id", "senderId", "receiverId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles collection"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Social blog posts collection"
+    },
+    "/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comments collection"
+    },
+    "/stories/{storyId}": {
+      "schema": "Story",
+      "description": "Stories collection"
+    },
+    "/likes/{likeId}": {
+      "schema": "Like",
+      "description": "Post likes collection"
+    },
+    "/bookmarks/{bookmarkId}": {
+      "schema": "Bookmark",
+      "description": "Saved posts bookmarks collection"
+    },
+    "/follows/{followId}": {
+      "schema": "Follow",
+      "description": "Follow relations collection"
+    },
+    "/chat_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Chat messages collection"
+    },
+    "/typing_status/{statusId}": {
+      "schema": "ChatMessage",
+      "description": "Live typing status indicators"
+    },
+    "/user_emails/{emailId}": {
+      "schema": "User",
+      "description": "Username to email recovery lookup"
+    }
+  }
+}

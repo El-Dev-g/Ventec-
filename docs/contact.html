@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Zooz - Support & Developer Enquiries</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Material Icons for professional visual cues -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <style>
+        /* Premium custom styling specifically optimized for the redesigned Contact screen */
+        .contact-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 50px;
+            width: 100%;
+            margin-top: 20px;
+            align-items: start;
+        }
+
+        /* Override standard flex to handle two-column layout grid */
+        main.contact-main {
+            display: block;
+            padding: 40px 0;
+        }
+
+        .contact-info {
+            padding-right: 20px;
+        }
+
+        .contact-title {
+            font-size: 3rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .contact-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .info-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            display: flex;
+            gap: 15px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        .info-card-icon {
+            color: var(--primary-color);
+            background: rgba(98, 0, 238, 0.06);
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: fit-content;
+        }
+
+        .info-card-details h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+
+        .info-card-details p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .info-card-link {
+            font-weight: 600;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .info-card-link:hover {
+            color: var(--primary-dark);
+        }
+
+        /* Professional Dynamic Form Styling */
+        .form-container {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px 18px;
+            font-size: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background-color: #fcfdfe;
+            transition: all 0.3s ease;
+            outline: none;
+            color: var(--text-primary);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(98, 0, 238, 0.1);
+        }
+
+        .form-control-select {
+            appearance: none;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236200EE' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 18px center;
+            background-size: 16px;
+            padding-right: 45px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(98, 0, 238, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(98, 0, 238, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Success & Submitting States overlay */
+        .form-state-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+
+        .form-state-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .success-checkmark {
+            width: 80px;
+            height: 80px;
+            background: rgba(52, 168, 83, 0.1);
+            color: #34A853;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin-bottom: 25px;
+            animation: popCheckmark 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+
+        .submitting-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(98, 0, 238, 0.1);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 25px;
+        }
+
+        .success-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .success-text {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .api-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 15px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .reset-btn {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background: rgba(98, 0, 238, 0.05);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes popCheckmark {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Responsive Grid Breakdown */
+        @media (max-width: 900px) {
+            .contact-container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            .contact-info {
+                padding-right: 0;
+                text-align: center;
+            }
+            .contact-title {
+                font-size: 2.5rem;
+            }
+            .contact-subtitle {
+                margin-bottom: 30px;
+            }
+            .info-card {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <a href="index.html" class="brand">
+                <span class="brand-z-blue">z</span><span class="brand-o-red">o</span><span class="brand-o-yellow">o</span><span class="brand-z-green">z</span>
+            </a>
+            <ul>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html" style="color: var(--primary-color);">Contact</a></li>
+                <li><a href="index.html#download">Download</a></li>
+            </ul>
+        </nav>
+        
+        <main class="contact-main">
+            <div class="contact-container">
+                
+                <!-- Left Column: Support Categories & Company Info -->
+                <div class="contact-info">
+                    <h1 class="contact-title">Let’s connect</h1>
+                    <p class="contact-subtitle">Have a question about the Zooz app, integration modules, billing, or developers console? Select the appropriate channel or write to us directly.</p>
+                    
+                    <div class="info-cards">
+                        <!-- Card 1: Customer Support -->
+                        <div class="info-card">
+                            <div class="info-card-icon">
+                                <span class="material-icons-outlined">chat_bubble_outline</span>
+                            </div>
+                            <div class="info-card-details">
+                                <h3>User & App Support</h3>
+                                <p>Trouble logging in, writing posts, or setting up your profile? We're on call 24/7.</p>
+                                <a href="about.html" class="info-card-link">Learn about Zooz <span class="material-icons-outlined" style="font-size: 14px;">arrow_forward</span></a>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Developer Ecosystem -->
+                        <div class="info-card">
+                            <div class="info-card-icon">
+                                <span class="material-icons-outlined">code</span>
+                            </div>
+                            <div class="info-card-details">
+                                <h3>Zooz for Developers</h3>
+                                <p>Integrate ZoozPay, Commerce Catalog Sync, Webhooks, or OAuth Single Sign-on.</p>
+                                <a href="contact.html#" class="info-card-link" onclick="setCategory('Developer Portal Sandbox')">Set form to Developer Relations <span class="material-icons-outlined" style="font-size: 14px;">arrow_forward</span></a>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Enterprise & Leads -->
+                        <div class="info-card">
+                            <div class="info-card-icon">
+                                <span class="material-icons-outlined">business</span>
+                            </div>
+                            <div class="info-card-details">
+                                <h3>Business, Ads & Partnership</h3>
+                                <p>Manage business tools, place conversion pixels, and coordinate high-volume transactions.</p>
+                                <a href="mailto:support@zooz.com" class="info-card-link">Email Business Team <span class="material-icons-outlined" style="font-size: 14px;">alternate_email</span></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column: Interactive Dynamic Contact Form -->
+                <div class="form-container">
+                    
+                    <!-- Form submitting loader -->
+                    <div class="form-state-overlay" id="submittingOverlay">
+                        <div class="submitting-spinner"></div>
+                        <h3 class="success-title">Transmitting Message</h3>
+                        <p class="success-text">Routing package to Zooz CRM Gateway...</p>
+                    </div>
+
+                    <!-- Submission success panel -->
+                    <div class="form-state-overlay" id="successOverlay">
+                        <div class="success-checkmark">
+                            <span class="material-icons-outlined">done</span>
+                        </div>
+                        <div class="api-badge" id="successBadge">
+                            <span class="material-icons-outlined" style="font-size:14px">dns</span> Routed to Lead CRM Gateway
+                        </div>
+                        <h3 class="success-title">Message Received!</h3>
+                        <p class="success-text" id="successDesc">Thank you for reaching out. We have logged your request and assigned registration ticket #<strong>ZZ-491952</strong>. Our response SLA is less than 4 hours.</p>
+                        <button class="reset-btn" onclick="resetForm()">New Message</button>
+                    </div>
+
+                    <!-- Main Form Elements -->
+                    <form id="contactForm" onsubmit="handleFormSubmit(event)">
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" id="senderName" class="form-control" placeholder="E.g., Taylor Swift" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" id="senderEmail" class="form-control" placeholder="E.g., taylor@domain.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Inquiry Category</label>
+                            <select id="senderCategory" class="form-control form-control-select" required>
+                                <option value="App Feedback & Support">General App Support & Account Assistance</option>
+                                <option value="Developer Portal Sandbox">Developer Relations & OAuth SDK</option>
+                                <option value="Business Tools & CRM">Business Tools, CRM & Ads Manager</option>
+                                <option value="Trust & Safety Flag Log">Trust & Safety, Moderation Appeals</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Your Message</label>
+                            <textarea id="senderMessage" class="form-control" rows="5" placeholder="Include as much detail as possible..." required></textarea>
+                        </div>
+
+                        <button type="submit" class="submit-btn" id="submitBtn">
+                            <span class="material-icons-outlined">send</span> Send Message
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2026 Zooz Application. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Script to simulate professional backend transmission -->
+    <script>
+        function setCategory(categoryVal) {
+            const selectEl = document.getElementById('senderCategory');
+            if (selectEl) {
+                selectEl.value = categoryVal;
+                // Focus on message box for sleek UX
+                document.getElementById('senderMessage').focus();
+            }
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('senderName').value;
+            const email = document.getElementById('senderEmail').value;
+            const category = document.getElementById('senderCategory').value;
+            const message = document.getElementById('senderMessage').value;
+
+            // Trigger submitting state
+            const submittingOverlay = document.getElementById('submittingOverlay');
+            submittingOverlay.classList.add('active');
+
+            // Send real message data to Formspree AJAX Endpoint
+            fetch('https://formspree.io/f/xojbynyr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    category: category,
+                    _subject: `New Zooz Inquiry: ${category} from ${name}`,
+                    message: message
+                })
+            })
+            .then(response => {
+                submittingOverlay.classList.remove('active');
+                if (response.ok) {
+                    // Customize success badge details depending on select categories
+                    const badge = document.getElementById('successBadge');
+                    const desc = document.getElementById('successDesc');
+                    const ticketId = 'ZZ-' + Math.floor(100000 + Math.random() * 900000);
+
+                    if (category === "Developer Relations & OAuth SDK" || category === "Developer Portal Sandbox") {
+                        badge.innerHTML = `<span class="material-icons-outlined" style="font-size:14px">developer_mode</span> Routed to Developer Support Sandbox`;
+                        desc.innerHTML = `Hi <strong>${name}</strong>, your API/SDK integration request has been logged. We've created Ticket <strong>${ticketId}</strong> for Developer Relations to coordinate with you. Expect sandbox configurations soon!`;
+                    } else if (category === "Business Tools, CRM & Ads Manager" || category === "Business Tools & CRM") {
+                        badge.innerHTML = `<span class="material-icons-outlined" style="font-size:14px">storefront</span> Routed to CRM Gateway & Leads Dashboard`;
+                        desc.innerHTML = `Hi <strong>${name}</strong>, your Business Partnership enquiry holds priority status in our CRM (Ticket <strong>${ticketId}</strong>). Support Specialists are analyzing your metrics request.`;
+                    } else if (category === "Trust & Safety, Moderation Appeals" || category === "Trust & Safety Flag Log") {
+                        badge.innerHTML = `<span class="material-icons-outlined" style="font-size:14px">gpp_maybe</span> Flagged to Trust & Safety Sandbox`;
+                        desc.innerHTML = `Dear <strong>${name}</strong>, your safety/moderation report (Ticket <strong>${ticketId}</strong>) has been synchronized with the Trust & Safety team. Our queue operates instantly to secure the micro-marketplace environment.`;
+                    } else {
+                        badge.innerHTML = `<span class="material-icons-outlined" style="font-size:14px">support_agent</span> Routed to Customer Care Hub`;
+                        desc.innerHTML = `Hi <strong>${name}</strong>, your message (Ticket <strong>${ticketId}</strong>) was processed by Formspree and received by our team successfully! We will reply to <strong>${email}</strong> as soon as possible.`;
+                    }
+
+                    // Show success overlay modal
+                    document.getElementById('successOverlay').classList.add('active');
+                } else {
+                    return response.json().then(data => {
+                        if (Object.prototype.hasOwnProperty.call(data, 'errors')) {
+                            alert(data["errors"].map(error => error["message"]).join(", "));
+                        } else {
+                            alert("Oops! There was a problem submitting your form. Please verify your details and try again.");
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                submittingOverlay.classList.remove('active');
+                alert("Network connection error. Please connect to the internet and try again.");
+            });
+        }
+
+        function resetForm() {
+            // Clean inputs
+            document.getElementById('contactForm').reset();
+            // Demolish overlays
+            document.getElementById('successOverlay').classList.remove('active');
+        }
+    </script>
+</body>
+</html>

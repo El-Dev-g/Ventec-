@@ -1,11 +1,21 @@
-<div align="center">
+# Zooz - Social Blogging App
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Zooz is a modern social blogging application designed to foster connection and sharing.
 
-  <h1>Built with AI Studio</h2>
+## Features
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **Create Accounts**: Secure user registration.
+- **Blogging**: Create, read, and manage posts.
+- **Engagement**: Like and comment on posts.
+- **Bookmarks**: Keep track of your favorite content.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Getting Started
 
-</div>
+1. Clone this repository.
+2. Ensure you have the Android development environment set up.
+3. Configure your environment variables as required in `.env.example`.
+4. Add your `google-services.json` file in the `app/` directory.
+5. Build and run the app using the Android development tools.
+
+---
+*Note: This project contains sensitive configurations. Please ensure all API keys and secrets are kept secure and are never committed to public repositories.*

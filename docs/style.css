@@ -1,0 +1,180 @@
+:root {
+    --primary-color: #6200EE;
+    --primary-dark: #3700B3;
+    --background: #fdfcfd;
+    --surface: #ffffff;
+    --text-primary: #121212;
+    --text-secondary: #585858;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+}
+
+.navbar .brand {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+/* Multi-color Logo Brand Styling */
+.brand-z-blue {
+    color: #4285F4;
+}
+.brand-o-red {
+    color: #EA4335;
+}
+.brand-o-yellow {
+    color: #FBBC05;
+}
+.brand-z-green {
+    color: #34A853;
+}
+.brand-suffix {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 1.4rem;
+    letter-spacing: 0;
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+.navbar ul li a {
+    text-decoration: none;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.navbar ul li a:hover {
+    color: var(--primary-color);
+}
+
+header {
+    text-align: center;
+    padding: 60px 0 40px;
+}
+
+header h1 {
+    font-size: 4rem;
+    font-weight: 900;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    padding: 40px 0;
+}
+
+.app-preview {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.app-banner-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.download-section {
+    flex: 1;
+    background-color: var(--surface);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.download-section h2 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+}
+
+.download-section p {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+}
+
+.download-btn {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    padding: 15px 40px;
+    border-radius: 30px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 15px rgba(98, 0, 238, 0.4);
+}
+
+.download-btn:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.version-info {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #999;
+}
+
+footer {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-secondary);
+    border-top: 1px solid #eaeaea;
+    margin-top: 40px;
+}
+
+@media (max-width: 768px) {
+    main {
+        flex-direction: column;
+    }
+    
+    .phone-mockup {
+        width: 250px;
+        height: 500px;
+    }
+}

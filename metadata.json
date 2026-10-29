@@ -1,0 +1,8 @@
+{
+  "name": "Zooz",
+  "description": "A social blogging application where users can create accounts, post, read, comment, like, and bookmark content.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
