@@ -46,7 +46,8 @@ data class Post(
     val isPromoted: Boolean = false,
     val promoteFee: Double = 0.0,
     val clicks: Int = 0,
-    val impressions: Int = 0
+    val impressions: Int = 0,
+    val isReported: Boolean = false
 )
 
 @Entity(

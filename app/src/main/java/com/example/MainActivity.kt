@@ -285,7 +285,7 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
             HomeScreen(
                 viewModel = viewModel,
                 onNavigateToCreatePost = { navController.navigate("create_story") },
-                onNavigateToPostDetail = { postId -> /* video watch handle */ },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") },
                 onNavigateToMenuDest = { route -> navController.navigate(route) },
                 onNavigateToUserProfile = { userId -> navController.navigate("user_profile/$userId") }
             )
@@ -296,7 +296,7 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
                 userId = null,
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToPostDetail = { postId -> /* video watch handle */ },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") },
                 onNavigateToFollowers = { userId -> navController.navigate("followers/$userId") },
                 onNavigateToFollowing = { userId -> navController.navigate("following/$userId") },
                 onNavigateToMessaging = { userId -> navController.navigate("messaging?userId=$userId") },
@@ -314,7 +314,7 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
                 userId = userId,
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToPostDetail = { postId -> /* video watch handle */ },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") },
                 onNavigateToFollowers = { id -> navController.navigate("followers/$id") },
                 onNavigateToFollowing = { id -> navController.navigate("following/$id") },
                 onNavigateToMessaging = { id -> navController.navigate("messaging?userId=$id") },
@@ -355,7 +355,7 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
             com.example.ui.BookmarksScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToPostDetail = { postId -> /* video watch handle */ },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") },
                 onNavigateToUserProfile = { userId -> navController.navigate("user_profile/$userId") }
             )
         }
@@ -433,14 +433,16 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
                 }
             )
         }
-        composable("standalone_auth_success") {
-            com.example.authentication.AuthSuccessScreen(
+        composable(
+            route = "post_detail/{postId}",
+            arguments = listOf(navArgument("postId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getInt("postId") ?: return@composable
+            com.example.ui.PostDetailScreen(
+                postId = postId,
                 viewModel = viewModel,
-                onSignOut = {
-                    navController.navigate("standalone_auth") {
-                        popUpTo("standalone_auth_success") { inclusive = true }
-                    }
-                }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToUserProfile = { id -> navController.navigate("user_profile/$id") }
             )
         }
     }

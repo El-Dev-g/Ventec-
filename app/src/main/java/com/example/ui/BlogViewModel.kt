@@ -156,6 +156,17 @@ class BlogViewModel(
         reportedPostIds.value = reportedPostIds.value + postId
         // When reporting, we also default to hiding it to prevent further annoyance
         hiddenPostIds.value = hiddenPostIds.value + postId
+        
+        viewModelScope.launch {
+            try {
+                val post = allPosts.value.find { it.id == postId }
+                if (post != null) {
+                    repository.updatePost(post.copy(isReported = true))
+                }
+            } catch (e: Exception) {
+                // Ignore failure
+            }
+        }
     }
 
     val allPosts: StateFlow<List<Post>> = combine(repository.allPosts, _selectedFilter, hiddenPostIds) { posts, filter, hidden ->

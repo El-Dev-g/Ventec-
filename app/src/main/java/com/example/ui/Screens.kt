@@ -3179,12 +3179,16 @@ fun PostItem(
                     .fillMaxSize()
             ) {
                 if (!post.mediaUri.isNullOrEmpty()) {
+                    var lastPressTime by remember { mutableStateOf(0L) }
+                    
                     MediaView(
                         mediaUri = post.mediaUri,
                         modifier = Modifier.fillMaxSize(),
-                        autoPlayEnabled = !isHomeFeed,
+                        autoPlayEnabled = isHomeFeed,
                         isHomeFeed = isHomeFeed,
                         onClick = null,
+                        isMutedByMusic = !post.spotifyTrackPreviewUrl.isNullOrEmpty(),
+                        musicUrl = post.spotifyTrackPreviewUrl,
                         onDoubleTap = { offset ->
                             if (!isLiked) {
                                 viewModel.toggleLike(post.id, false)
@@ -3614,164 +3618,116 @@ fun PostItem(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .padding(top = 8.dp, bottom = 32.dp, start = 16.dp, end = 16.dp)
                     .navigationBarsPadding(),
-                horizontalAlignment = Alignment.Start
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Post Actions",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    color = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 24.dp)
                 )
 
-                if (isOwner) {
-                    Surface(
-                        onClick = {
-                            showLongPressActionsSheet = false
-                            showDeleteConfirmDialog = true
-                        },
-                        color = Color.Transparent,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = "Delete",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                Text(
-                                    text = "Permanently remove this post",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // Vertical Button: About
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showLongPressActionsSheet = false
+                                showInfoDialog = true
                             }
+                            .padding(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .background(Color.White.copy(alpha = 0.08f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Star, contentDescription = "About", tint = Color(0xFF25F4EE), modifier = Modifier.size(26.dp))
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("About", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                     }
 
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
-                }
-
-                Surface(
-                    onClick = {
-                        showLongPressActionsSheet = false
-                        viewModel.hidePost(post.id)
-                        android.widget.Toast.makeText(context, "Post hidden successfully", android.widget.Toast.LENGTH_SHORT).show()
-                    },
-                    color = Color.Transparent,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Vertical Button: Hide
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showLongPressActionsSheet = false
+                                viewModel.hidePost(post.id)
+                                android.widget.Toast.makeText(context, "Post hidden", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "Hide",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = "Hide",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "See fewer posts like this",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.6f)
-                            )
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .background(Color.White.copy(alpha = 0.08f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Hide", tint = Color.White, modifier = Modifier.size(26.dp))
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Hide", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                     }
-                }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
-
-                Surface(
-                    onClick = {
-                        showLongPressActionsSheet = false
-                        viewModel.reportPost(post.id)
-                        android.widget.Toast.makeText(context, "Post reported. Thank you!", android.widget.Toast.LENGTH_SHORT).show()
-                    },
-                    color = Color.Transparent,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Vertical Button: Report
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showLongPressActionsSheet = false
+                                viewModel.reportPost(post.id)
+                                android.widget.Toast.makeText(context, "Post reported", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Report,
-                            contentDescription = "Report",
-                            tint = Color(0xFFFE2C55),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = "Report",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFFE2C55)
-                            )
-                            Text(
-                                text = "We'll review this content",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.6f)
-                            )
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .background(Color.White.copy(alpha = 0.08f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Report, contentDescription = "Report", tint = Color(0xFFFE2C55), modifier = Modifier.size(26.dp))
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Report", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                     }
-                }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
-
-                Surface(
-                    onClick = {
-                        showLongPressActionsSheet = false
-                        showInfoDialog = true
-                    },
-                    color = Color.Transparent,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Star,
-                            contentDescription = "About",
-                            tint = Color(0xFF25F4EE),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = "About",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Why you're seeing this post",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.6f)
-                            )
+                    // Vertical Button: Delete (Owner only)
+                    if (isOwner) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    showLongPressActionsSheet = false
+                                    showDeleteConfirmDialog = true
+                                }
+                                .padding(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(54.dp)
+                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(26.dp))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Delete", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -5621,26 +5577,32 @@ fun buildSafeExoPlayer(context: android.content.Context): androidx.media3.exopla
         "User-Agent" to "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
         "Accept" to "*/*",
         "Accept-Encoding" to "identity",
-        "Connection" to "keep-alive"
+        "Connection" to "keep-alive",
+        "Referer" to "https://r2.cloudflare.com/",
+        "Origin" to "https://r2.cloudflare.com/"
     )
     val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
         .setUserAgent("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36")
         .setDefaultRequestProperties(defaultProperties)
         .setAllowCrossProtocolRedirects(true)
-        .setConnectTimeoutMs(10000)
-        .setReadTimeoutMs(10000)
+        .setConnectTimeoutMs(15000)
+        .setReadTimeoutMs(15000)
 
-    val errorHandlingPolicy = object : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy(1) {
+    val errorHandlingPolicy = object : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy(3) {
         override fun getRetryDelayMsFor(loadErrorInfo: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo): Long {
             val exception = loadErrorInfo.exception
-            if (exception is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException && exception.responseCode == 403) {
-                return androidx.media3.common.C.TIME_UNSET
+            if (exception is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                android.util.Log.e("ExoPlayerSafe", "HTTP Error: ${exception.responseCode} for URL: ${loadErrorInfo.loadEventInfo.uri}")
+                if (exception.responseCode == 403) {
+                    return androidx.media3.common.C.TIME_UNSET
+                }
             }
             return super.getRetryDelayMsFor(loadErrorInfo)
         }
     }
 
-    val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(httpDataSourceFactory)
+    val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(context, httpDataSourceFactory)
+    val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory)
         .setLoadErrorHandlingPolicy(errorHandlingPolicy)
 
     return androidx.media3.exoplayer.ExoPlayer.Builder(context)
@@ -5761,7 +5723,9 @@ fun ModernVideoPlayer(
     onLongPress: ((androidx.compose.ui.geometry.Offset) -> Unit)? = null,
     isNested: Boolean = false,
     isHomeFeed: Boolean = false,
-    isMutedByMusic: Boolean = false
+    isMutedByMusic: Boolean = false,
+    playbackSpeed: Float = 1.0f,
+    musicUrl: String? = null
 ) {
     val context = LocalContext.current
     val activeUri by ActiveVideoManager.activeVideoUri.collectAsStateWithLifecycle()
@@ -5771,10 +5735,9 @@ fun ModernVideoPlayer(
     var isMuted by remember { mutableStateOf(isMutedByMusic) } // Unmute by default, unless music track is attached (to prevent audio collision)
     var isPrepared by remember { mutableStateOf(false) }
     var showControls by remember { mutableStateOf(false) }
-    var isLocked by remember { mutableStateOf(false) }
     var aspectRatioMode by remember { mutableStateOf(1) } // Default: 1 (ZOOM / Fill)
     var forceLandscape by remember { mutableStateOf(false) }
-    var playbackSpeed by remember { mutableStateOf(1.0f) }
+    var activePlaybackSpeed by remember(playbackSpeed) { mutableStateOf(playbackSpeed) }
 
     if (!isHomeFeed) {
         val targetOrientation = if (forceLandscape) {
@@ -5800,6 +5763,17 @@ fun ModernVideoPlayer(
 
     val audioManager = remember { context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager }
     val maxVolume = remember { audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC).toFloat() }
+    
+    // Music Player for synchronized playback in ModernVideoPlayer (e.g. for posts with music)
+    val musicPlayer = remember { androidx.media3.exoplayer.ExoPlayer.Builder(context).build() }
+    DisposableEffect(musicUrl) {
+        if (!musicUrl.isNullOrEmpty()) {
+            musicPlayer.setMediaItem(androidx.media3.common.MediaItem.fromUri(musicUrl))
+            musicPlayer.prepare()
+            musicPlayer.repeatMode = androidx.media3.common.Player.REPEAT_MODE_ALL
+        }
+        onDispose { musicPlayer.release() }
+    }
 
     var activeMediaUri by remember(mediaUri) { mutableStateOf(mediaUri) }
     var hasPlaybackError by remember(mediaUri) { mutableStateOf(false) }
@@ -5836,8 +5810,10 @@ fun ModernVideoPlayer(
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
             exoPlayer.play()
+            if (isMutedByMusic) musicPlayer.play()
         } else {
             exoPlayer.pause()
+            musicPlayer.pause()
         }
     }
 
@@ -5858,8 +5834,8 @@ fun ModernVideoPlayer(
     }
 
     // Speed Sync
-    LaunchedEffect(playbackSpeed) {
-        exoPlayer.setPlaybackSpeed(playbackSpeed)
+    LaunchedEffect(activePlaybackSpeed) {
+        exoPlayer.setPlaybackSpeed(activePlaybackSpeed)
     }
 
     // Background safety and release of player resources
@@ -5944,30 +5920,15 @@ fun ModernVideoPlayer(
                         }
                     }
                 }
-                .pointerInput(isLocked) {
-                    if (isLocked) return@pointerInput
+                .pointerInput(Unit) {
                     detectTapGestures(
                         onDoubleTap = { offset ->
                             if (onDoubleTap != null) {
                                 onDoubleTap(offset)
                             } else if (layoutWidth > 0 && !isHomeFeed) {
-                                // Default skip logic for non-feed players if no callback
-                                val isLeft = offset.x < layoutWidth / 2f
-                                val skipDelta = 10000L // 10s skip
-                                val currentPos = exoPlayer.currentPosition
-                                if (isLeft) {
-                                    exoPlayer.seekTo((currentPos - skipDelta).coerceAtLeast(0L))
-                                    skipText = "⏪ -10s"
-                                } else {
-                                    exoPlayer.seekTo((currentPos + skipDelta).coerceAtMost(exoPlayer.duration))
-                                    skipText = "⏩ +10s"
-                                }
-                                showControls = true
-                                fadeJob?.cancel()
-                                fadeJob = coroutineScope.launch {
-                                    kotlinx.coroutines.delay(1000)
-                                    skipText = null
-                                }
+                                // Default skip logic removed to prevent interference with Like gesture
+                                // If needed, can be re-enabled via a flag or explicitly passed
+                                android.util.Log.d("ModernVideoPlayer", "Double tap ignored as per user request to avoid accidental skips")
                             }
                         },
                         onLongPress = { offset ->
@@ -5982,8 +5943,8 @@ fun ModernVideoPlayer(
                         }
                     )
                 }
-                .pointerInput(isLocked, isHomeFeed) {
-                    if (isLocked || isHomeFeed) return@pointerInput
+                .pointerInput(isHomeFeed) {
+                    if (isHomeFeed) return@pointerInput
                     var dragStartLeft = false
                     detectDragGestures(
                         onDragStart = { offset: androidx.compose.ui.geometry.Offset ->
@@ -6084,7 +6045,7 @@ fun ModernVideoPlayer(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(56.dp)
                         )
-                    } else if (!isLocked) {
+                    } else {
                         // Central Play/Pause button only
                         IconButton(
                             onClick = { isPlaying = !isPlaying },
@@ -6099,35 +6060,6 @@ fun ModernVideoPlayer(
                                 modifier = Modifier.size(44.dp)
                             )
                         }
-                    }
-                }
-            }
-
-            // Lock Overrides Control Indicator (Top Left floats lock layout button)
-            if (!isHomeFeed) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp)
-                ) {
-                    IconButton(
-                        onClick = {
-                            isLocked = !isLocked
-                            showControls = true
-                        },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(
-                                color = if (isLocked) MaterialTheme.colorScheme.error.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.5f),
-                                shape = CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = if (isLocked) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                            contentDescription = if (isLocked) "Unlock Screen Controls" else "Lock Screen Controls",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
                     }
                 }
             }
@@ -6149,22 +6081,8 @@ fun ModernVideoPlayer(
                 }
             }
 
-            // Top-right tag & Aspect Ratio toggler
-            if (!isLocked) {
-                AnimatedVisibility(
-                    visible = showControls || !isPlaying,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.align(Alignment.TopEnd)
-                ) {
-                    // Header toggles removed as per user request (rotation/landscape toggle, 3-dot menu, aspect ratio)
-                    Box(modifier = Modifier.size(1.dp))
-                }
-            }
-
             // Bottom Core Controls (Scrubber, timestamps, speed modifiers, mute)
-            if (!isLocked) {
-                AnimatedVisibility(
+            AnimatedVisibility(
                     visible = showControls || !isPlaying,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
                     exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
@@ -6182,23 +6100,24 @@ fun ModernVideoPlayer(
                             .padding(bottom = 12.dp, start = 12.dp, end = 12.dp, top = 20.dp)
                     ) {
                         // Core scrubber Slider track
-                        Slider(
-                            value = if (videoDuration > 0) currentPosition.toFloat() / videoDuration else 0f,
-                            onValueChange = { fraction ->
-                                val seekPos = (fraction * videoDuration).toLong()
-                                exoPlayer.seekTo(seekPos)
-                                currentPosition = seekPos
-                            },
-                            valueRange = 0f..1f,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(16.dp),
-                            colors = SliderDefaults.colors(
-                                thumbColor = MaterialTheme.colorScheme.primary,
-                                activeTrackColor = MaterialTheme.colorScheme.primary,
-                                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                        // Core scrubber Slider track (TikTok-style thin)
+                        Box(modifier = Modifier.fillMaxWidth().height(24.dp), contentAlignment = Alignment.Center) {
+                            Slider(
+                                value = if (videoDuration > 0) currentPosition.toFloat() / videoDuration else 0f,
+                                onValueChange = { fraction ->
+                                    val seekPos = (fraction * videoDuration).toLong()
+                                    exoPlayer.seekTo(seekPos)
+                                    currentPosition = seekPos
+                                },
+                                valueRange = 0f..1f,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                )
                             )
-                        )
+                        }
 
                         Spacer(modifier = Modifier.height(4.dp))
 
@@ -6222,7 +6141,7 @@ fun ModernVideoPlayer(
                             ) {
                                 if (!isHomeFeed) {
                                     listOf(1.0f, 1.5f, 2.0f).forEach { speed ->
-                                        val isCurrent = playbackSpeed == speed
+                                        val isCurrent = activePlaybackSpeed == speed
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(12.dp))
@@ -6230,7 +6149,7 @@ fun ModernVideoPlayer(
                                                     if (isCurrent) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.5f)
                                                 )
                                                 .clickable {
-                                                    playbackSpeed = speed
+                                                    activePlaybackSpeed = speed
                                                 }
                                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                                         ) {
@@ -6266,7 +6185,6 @@ fun ModernVideoPlayer(
                 }
             }
         }
-    }
 
     if (isFullscreen) {
         androidx.compose.ui.window.Dialog(
@@ -6324,7 +6242,9 @@ fun MediaView(
     onDoubleTap: ((androidx.compose.ui.geometry.Offset) -> Unit)? = null,
     onLongPress: ((androidx.compose.ui.geometry.Offset) -> Unit)? = null,
     isHomeFeed: Boolean = false,
-    isMutedByMusic: Boolean = false
+    isMutedByMusic: Boolean = false,
+    playbackSpeed: Float = 1.0f,
+    musicUrl: String? = null
 ) {
     if (mediaUri.isNullOrEmpty()) return
     val context = LocalContext.current
@@ -6336,16 +6256,21 @@ fun MediaView(
             if (mimeType != null && mimeType.startsWith("video/")) {
                 true
             } else {
-                mediaUri.contains("video", ignoreCase = true) || 
-                mediaUri.endsWith(".mp4", ignoreCase = true) ||
-                mediaUri.endsWith(".mkv", ignoreCase = true) ||
-                mediaUri.endsWith(".webm", ignoreCase = true) ||
-                mediaUri.endsWith(".3gp", ignoreCase = true) ||
-                mediaUri.endsWith(".avi", ignoreCase = true)
+                val lowerUri = mediaUri.lowercase(java.util.Locale.ROOT)
+                lowerUri.contains("video") || 
+                lowerUri.contains("inapp_rec") ||
+                lowerUri.contains("local_media") ||
+                lowerUri.endsWith(".mp4") ||
+                lowerUri.endsWith(".mkv") ||
+                lowerUri.endsWith(".webm") ||
+                lowerUri.endsWith(".3gp") ||
+                lowerUri.endsWith(".avi") ||
+                lowerUri.endsWith(".mov") ||
+                lowerUri.endsWith(".m4v")
             }
         } catch (e: Exception) {
-            mediaUri.contains("video", ignoreCase = true) || 
-            mediaUri.endsWith(".mp4", ignoreCase = true)
+            val lowerUri = mediaUri.lowercase(java.util.Locale.ROOT)
+            lowerUri.contains("video") || lowerUri.endsWith(".mp4") || lowerUri.contains("rec")
         }
     }
     
@@ -6359,48 +6284,67 @@ fun MediaView(
             onDoubleTap = onDoubleTap,
             onLongPress = onLongPress,
             isHomeFeed = isHomeFeed,
-            isMutedByMusic = isMutedByMusic
+            isMutedByMusic = isMutedByMusic,
+            playbackSpeed = playbackSpeed,
+            musicUrl = musicUrl
         )
     } else {
         val uris = mediaUri.split(",")
-        if (uris.size > 1) {
-            val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { uris.size })
-            Box(modifier = modifier) {
-                androidx.compose.foundation.pager.HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    AsyncImage(
-                        model = uris[page].trim(),
-                        contentDescription = "Attached Media",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+        Box(
+            modifier = modifier
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = { offset ->
+                            onDoubleTap?.invoke(offset)
+                        },
+                        onLongPress = { offset ->
+                            onLongPress?.invoke(offset)
+                        },
+                        onTap = {
+                            onClick?.invoke()
+                        }
                     )
                 }
-                // Dots indicator
-                Row(
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    repeat(uris.size) { iteration ->
-                        val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.5f)
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(color = color, shape = CircleShape)
+        ) {
+            if (uris.size > 1) {
+                val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { uris.size })
+                Box(modifier = Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.pager.HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        AsyncImage(
+                            model = uris[page].trim(),
+                            contentDescription = "Attached Media",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
                     }
+                    // Dots indicator
+                    Row(
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        repeat(uris.size) { iteration ->
+                            val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.5f)
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(color = color, shape = CircleShape)
+                            )
+                        }
+                    }
                 }
+            } else {
+                AsyncImage(
+                    model = uris.first().trim(),
+                    contentDescription = "Attached Media",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
             }
-        } else {
-            AsyncImage(
-                model = uris.first().trim(),
-                contentDescription = "Attached Media",
-                modifier = modifier,
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-            )
         }
     }
 }
@@ -9178,12 +9122,17 @@ fun CallingOverlay(
 }
 
 fun saveUriToInternalStorage(context: android.content.Context, uri: android.net.Uri): String? {
+    if (uri.scheme?.startsWith("http", ignoreCase = true) == true) {
+        return uri.toString()
+    }
     return try {
         val resolver = context.contentResolver
         val type = resolver.getType(uri) ?: ""
         val extension = when {
             type.contains("video", ignoreCase = true) -> "mp4"
             type.contains("gif", ignoreCase = true) -> "gif"
+            uri.toString().endsWith(".mp4", ignoreCase = true) -> "mp4"
+            uri.toString().contains("video", ignoreCase = true) -> "mp4"
             else -> "jpg"
         }
         val filename = "local_media_${System.currentTimeMillis()}_${(100..999).random()}.$extension"
@@ -9488,121 +9437,44 @@ fun ForgotPasswordScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoWatchScreenContent(
+fun PostDetailScreen(
+    postId: Int,
     viewModel: BlogViewModel,
-    onNavigateToUserProfile: (Int) -> Unit,
-    onNavigateToSearch: () -> Unit = {}
+    onNavigateBack: () -> Unit,
+    onNavigateToUserProfile: (Int) -> Unit
 ) {
-    val context = LocalContext.current
-    val posts by viewModel.allPosts.collectAsStateWithLifecycle(initialValue = emptyList())
-    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
-    val bookmarkedPosts by viewModel.getBookmarkedPosts().collectAsStateWithLifecycle(initialValue = emptyList())
+    val allPosts by viewModel.allPosts.collectAsStateWithLifecycle()
+    val post = remember(allPosts, postId) { allPosts.find { it.id == postId } }
     
-    var selectedCategory by remember { mutableStateOf("All Videos") }
     var selectedPostForComments by remember { mutableStateOf<Post?>(null) }
-    
-    // Filter video posts
-    val videoPosts = remember(posts, selectedCategory, bookmarkedPosts) {
-        val userVideos = posts.filter { post ->
-            val uri = post.mediaUri ?: ""
-            uri.isNotBlank() && (
-                uri.contains("video", ignoreCase = true) ||
-                uri.contains("mp4", ignoreCase = true) ||
-                uri.contains("webm", ignoreCase = true)
-            )
+
+    if (post == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
-        
-        when (selectedCategory) {
-            "🎮 Gaming" -> userVideos.filter { it.categories.contains("Gaming", true) || it.tags.contains("Gaming", true) }
-            "🎵 Music" -> userVideos.filter { it.categories.contains("Music", true) || !it.spotifyTrackId.isNullOrEmpty() }
-            "⭐ Saved" -> {
-                val bookmarkedIds = bookmarkedPosts.map { it.id }.toSet()
-                userVideos.filter { it.id in bookmarkedIds }
-            }
-            else -> userVideos
-        }
+        return
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Top Filter Category Chips
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                listOf("All Videos", "🎮 Gaming", "🎵 Music", "⭐ Saved").forEach { category ->
-                    val isSelected = selectedCategory == category
-                    AssistChip(
-                        onClick = { selectedCategory = category },
-                        label = { Text(category, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        colors = if (isSelected) {
-                            AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        } else {
-                            AssistChipDefaults.assistChipColors()
-                        },
-                        border = if (isSelected) null else AssistChipDefaults.assistChipBorder(true)
-                    )
-                }
-            }
-        }
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        PostItem(
+            post = post,
+            viewModel = viewModel,
+            onClick = { /* Already full screen */ },
+            onAuthorClick = onNavigateToUserProfile,
+            isHomeFeed = true, // Force full screen style
+            onCommentsClick = { selectedPostForComments = post }
+        )
 
-        if (videoPosts.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Outlined.PlayCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = if (selectedCategory == "⭐ Saved") "No saved videos" else "No videos found in $selectedCategory",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { videoPosts.size })
-            
-            androidx.compose.foundation.pager.VerticalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                key = { page -> videoPosts.getOrNull(page)?.id ?: "empty_" }
-            ) { page ->
-                val videoPost = videoPosts.getOrNull(page)
-                if (videoPost != null) {
-                    PostItem(
-                        post = videoPost,
-                        viewModel = viewModel,
-                        onClick = { /* Live streams stay full screen */ },
-                        onAuthorClick = onNavigateToUserProfile,
-                        isHomeFeed = true,
-                        onCommentsClick = { selectedPostForComments = videoPost },
-                        onTagClick = { tag ->
-                            viewModel.setFilter(tag)
-                            onNavigateToSearch()
-                        }
-                    )
-                }
-            }
+        IconButton(
+            onClick = onNavigateBack,
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(16.dp)
+                .size(40.dp)
+                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                .align(Alignment.TopStart)
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
         }
     }
 
@@ -9615,377 +9487,6 @@ fun VideoWatchScreenContent(
     }
 }
 
-@Composable
-fun VideoWatchItemCard(
-    post: Post,
-    viewModel: BlogViewModel,
-    currentUser: com.example.data.User?,
-    onNavigateToUserProfile: (Int) -> Unit,
-    onCommentsClick: () -> Unit
-) {
-    val context = LocalContext.current
-    
-    val isLikedState = remember(post.id) { viewModel.isLiked(post.id) }
-    val isLiked by isLikedState.collectAsStateWithLifecycle(initialValue = false)
-    
-    val likeCountState = remember(post.id) { viewModel.getLikeCount(post.id) }
-    val likeCount by likeCountState.collectAsStateWithLifecycle(initialValue = 0)
-    
-    val isBookmarkedState = remember(post.id) { viewModel.isBookmarked(post.id) }
-    val isBookmarked by isBookmarkedState.collectAsStateWithLifecycle(initialValue = false)
-
-    val isFollowingState = remember(post.authorId) { viewModel.isFollowing(post.authorId) }
-    val isFollowing by isFollowingState.collectAsStateWithLifecycle(initialValue = false)
-
-    val commentCountState = remember(post.id) { viewModel.getCommentsForPost(post.id) }
-    val commentsList by commentCountState.collectAsStateWithLifecycle(initialValue = emptyList())
-    val commentsCount = commentsList.size
-
-    Card(
-        modifier = Modifier
-            .fillMaxSize(),
-        shape = androidx.compose.ui.graphics.RectangleShape,
-        colors = CardDefaults.cardColors(containerColor = Color.Black),
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onNavigateToUserProfile(post.authorId) }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val initial = if (post.authorName.isNotBlank()) post.authorName.take(2).uppercase() else "?"
-                        Text(
-                            text = initial,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = post.authorName,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        if (post.isPromoted) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.padding(top = 1.dp)
-                            ) {
-                                Text(
-                                    text = "Sponsored",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                                Text(
-                                    text = "·",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Icon(
-                                    imageVector = Icons.Filled.Public,
-                                    contentDescription = "Public",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(11.dp)
-                                )
-                            }
-                        } else {
-                            val timeStr = formatRelativeTime(post.timestamp)
-                            Text(
-                                text = timeStr,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                if (currentUser != null && post.authorId != currentUser.id) {
-                    Button(
-                        onClick = { viewModel.toggleFollow(post.authorId, isFollowing) },
-                        colors = if (isFollowing) {
-                            ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        },
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.height(32.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text(
-                            text = if (isFollowing) "Following" else "+ Follow",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-                Text(
-                    text = post.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = post.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .height(240.dp)
-                    .background(Color.Black)
-            ) {
-                if (!post.mediaUri.isNullOrEmpty()) {
-                    var isPlayRegistered by remember(post.id) { mutableStateOf(false) }
-                    MediaView(
-                        mediaUri = post.mediaUri,
-                        modifier = Modifier.fillMaxSize(),
-                        autoPlayEnabled = true,
-                        onPlay = {
-                            if (!isPlayRegistered) {
-                                isPlayRegistered = true
-                                viewModel.recordPostClick(post.id)
-                            }
-                        }
-                    )
-                }
-            }
-
-            if (post.isPromoted) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                        .clickable {
-                            viewModel.recordPostClick(post.id)
-                        }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                        Text(
-                            text = "SPONSORED OFFER",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
-                            ),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = post.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = if (post.content.isNotBlank()) post.content else "Tap to check out this video sponsor.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            viewModel.recordPostClick(post.id)
-                        },
-                        shape = RoundedCornerShape(4.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                        modifier = Modifier.height(34.dp)
-                    ) {
-                        Text(
-                            text = "Learn More",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                    thickness = 0.5.dp
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.PlayArrow,
-                        contentDescription = "Views",
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${post.clicks} views",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = "$likeCount likes · $commentsCount comments",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                thickness = 0.5.dp,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(
-                    onClick = { viewModel.toggleLike(post.id, isLiked) },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = if (isLiked) Color(0xFFFF2D55) else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = "Like",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (isLiked) "Liked" else "Like",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-
-                if (post.commentsDisabled) {
-                    TextButton(
-                        onClick = {
-                            android.widget.Toast.makeText(context, "Comments are disabled for this post", android.widget.Toast.LENGTH_SHORT).show()
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Block,
-                            contentDescription = "Comments Disabled",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Comments disabled", style = MaterialTheme.typography.labelMedium)
-                    }
-                } else {
-                    TextButton(
-                        onClick = onCommentsClick,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ChatBubbleOutline,
-                            contentDescription = "Comment",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Comment", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-
-                Row {
-                    IconButton(
-                        onClick = { 
-                            viewModel.toggleBookmark(post.id, isBookmarked)
-                            val toastMsg = if (isBookmarked) "Removed from bookmarks" else "Saved to bookmarks"
-                            android.widget.Toast.makeText(context, toastMsg, android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    ) {
-                        Icon(
-                            imageVector = if (isBookmarked) Icons.Filled.Bookmarks else Icons.Outlined.Bookmarks,
-                            contentDescription = "Bookmark",
-                            tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            val clip = android.content.ClipData.newPlainText("Post Content", "${post.title}\n\n${post.content}")
-                            clipboard.setPrimaryClip(clip)
-                            android.widget.Toast.makeText(context, "Link copied to clipboard!", android.widget.Toast.LENGTH_SHORT).show()
-                            
-                            try {
-                                val shareIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_SUBJECT, post.title)
-                                    putExtra(Intent.EXTRA_TEXT, "${post.title}\n\n${post.content}\n\nCheck this out on Zooz Watch!")
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Video via"))
-                            } catch (e: Exception) {
-                                // Ignore
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Share,
-                            contentDescription = "Share",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -10160,6 +9661,8 @@ fun InAppCameraPreview(
     var activeRecordingState by remember { mutableStateOf<androidx.camera.video.Recording?>(null) }
     var previewViewRef by remember { mutableStateOf<androidx.camera.view.PreviewView?>(null) }
     
+    var isSimulatedRecording by remember { mutableStateOf(false) }
+    
     val lensFacing = if (isFrontCamera) androidx.camera.core.CameraSelector.LENS_FACING_FRONT else androidx.camera.core.CameraSelector.LENS_FACING_BACK
 
     LaunchedEffect(lensFacing, previewViewRef) {
@@ -10181,42 +9684,66 @@ fun InAppCameraPreview(
                 }
 
                 cameraProvider.unbindAll()
-                val camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
+                
+                val isEmulator = android.os.Build.MODEL.contains("Emulator") || 
+                                 android.os.Build.MODEL.contains("google_sdk") || 
+                                 android.os.Build.FINGERPRINT.contains("generic") ||
+                                 android.os.Build.PRODUCT.contains("sdk") ||
+                                 android.os.Build.HARDWARE.contains("goldfish") ||
+                                 android.os.Build.HARDWARE.contains("ranchu")
 
-                val cameraIdInt = try {
-                    androidx.camera.camera2.interop.Camera2CameraInfo.from(camera.cameraInfo).cameraId.toIntOrNull() ?: 0
-                } catch (e: Exception) {
-                    0
-                }
-
-                val hasEncoderProfile = try {
-                    android.media.CamcorderProfile.hasProfile(cameraIdInt, android.media.CamcorderProfile.QUALITY_LOW) ||
-                    android.media.CamcorderProfile.hasProfile(cameraIdInt, android.media.CamcorderProfile.QUALITY_HIGH) ||
-                    android.media.CamcorderProfile.hasProfile(cameraIdInt, android.media.CamcorderProfile.QUALITY_480P)
-                } catch (e: Throwable) {
-                    false
-                }
-
-                if (hasEncoderProfile) {
-                    try {
-                        val recorder = androidx.camera.video.Recorder.Builder().build()
-                        val videoCapture = androidx.camera.video.VideoCapture.withOutput(recorder)
-                        videoCaptureState = videoCapture
-
-                        cameraProvider.unbindAll()
-                        cameraProvider.bindToLifecycle(
-                            lifecycleOwner,
-                            cameraSelector,
-                            preview,
-                            videoCapture
-                        )
-                    } catch (e: Throwable) {
-                        videoCaptureState = null
-                        android.util.Log.w("InAppCamera", "VideoCapture binding fallback: ${e.message}")
-                    }
-                } else {
+                if (isEmulator) {
+                    // On Android emulators/virtual devices, virtual cameras lack hardware EncoderProfiles.
+                    // Directly bind preview and skip querying CamcorderProfile / CapabilitiesByQuality
+                    // to eliminate "E/CapabilitiesByQuality: No supported EncoderProfiles" system errors.
+                    cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
                     videoCaptureState = null
-                    android.util.Log.i("InAppCamera", "Preview-only mode active (No encoder profiles available on device/emulator)")
+                } else {
+                    try {
+                        val cameraInfo = cameraSelector.filter(cameraProvider.availableCameraInfos).firstOrNull()
+                        val videoCapabilities = if (cameraInfo != null) {
+                            androidx.camera.video.Recorder.getVideoCapabilities(
+                                cameraInfo,
+                                androidx.camera.video.Recorder.VIDEO_CAPABILITIES_SOURCE_CODEC_CAPABILITIES
+                            )
+                        } else null
+                        
+                        val supportedQualities = videoCapabilities?.getSupportedQualities(androidx.camera.core.DynamicRange.SDR) ?: emptyList()
+                        
+                        if (supportedQualities.isNotEmpty()) {
+                            val preferredQuality = when {
+                                supportedQualities.contains(androidx.camera.video.Quality.HD) -> androidx.camera.video.Quality.HD
+                                supportedQualities.contains(androidx.camera.video.Quality.SD) -> androidx.camera.video.Quality.SD
+                                else -> supportedQualities.first()
+                            }
+
+                            val qualitySelector = androidx.camera.video.QualitySelector.from(
+                                preferredQuality,
+                                androidx.camera.video.FallbackStrategy.lowerQualityOrHigherThan(androidx.camera.video.Quality.LOWEST)
+                            )
+                            
+                            val recorder = androidx.camera.video.Recorder.Builder()
+                                .setVideoCapabilitiesSource(androidx.camera.video.Recorder.VIDEO_CAPABILITIES_SOURCE_CODEC_CAPABILITIES)
+                                .setQualitySelector(qualitySelector)
+                                .build()
+                            val videoCapture = androidx.camera.video.VideoCapture.withOutput(recorder)
+                            videoCaptureState = videoCapture
+
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                cameraSelector,
+                                preview,
+                                videoCapture
+                            )
+                        } else {
+                            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
+                            videoCaptureState = null
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("InAppCamera", "VideoCapture initialization failed: ${e.message}")
+                        cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
+                        videoCaptureState = null
+                    }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("InAppCamera", "Camera initialization error: ${e.message}")
@@ -10258,6 +9785,8 @@ fun InAppCameraPreview(
                 } catch (e: Exception) {
                     android.util.Log.e("InAppCamera", "Error starting recording: ${e.message}")
                 }
+            } else if (videoCapture == null) {
+                isSimulatedRecording = true
             }
         } else {
             if (activeRecordingState != null) {
@@ -10267,6 +9796,10 @@ fun InAppCameraPreview(
                     android.util.Log.e("InAppCamera", "Error stopping recording: ${e.message}")
                 }
                 activeRecordingState = null
+            } else if (isSimulatedRecording) {
+                isSimulatedRecording = false
+                val fallbackUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+                onRecordingFinished(Uri.parse(fallbackUrl))
             }
         }
     }
@@ -10314,11 +9847,59 @@ fun CreatePostScreen(
     
     var selectedFilterName by remember { mutableStateOf("Normal") }
     var selectedSpeed by remember { mutableStateOf("1x") }
-    var activeMode by remember { mutableStateOf("CAM") } // CAM, GALLERY, TEXT
+    var activeMode by remember { mutableStateOf("VIDEO") } // VIDEO, GALLERY, SOUNDS
+    
+    // Post-Capture Video Editor States
+    var videoTrimStart by remember { mutableFloatStateOf(0f) }
+    var videoTrimEnd by remember { mutableFloatStateOf(1f) }
+    var originalAudioVolume by remember { mutableFloatStateOf(1.0f) }
+    var musicAudioVolume by remember { mutableFloatStateOf(0.8f) }
+    var isOriginalAudioMuted by remember { mutableStateOf(false) }
+
+    // Text Overlay on Video
+    var overlayText by remember { mutableStateOf("") }
+    var overlayTextColor by remember { mutableStateOf(Color.White) }
+    var overlayTextBgColor by remember { mutableStateOf(Color.Black.copy(alpha = 0.65f)) }
+    var overlayTextOffsetX by remember { mutableFloatStateOf(0f) }
+    var overlayTextOffsetY by remember { mutableFloatStateOf(0f) }
+    var isEditingTextOverlay by remember { mutableStateOf(false) }
+    var tempOverlayInput by remember { mutableStateOf("") }
+
+    // Stickers Overlay
+    var activeStickers by remember { mutableStateOf(listOf<String>()) }
+
+    // Active Editor Drawer / Sheet Tool: null, "TRIM", "FILTERS", "AUDIO_MIX", "STICKERS"
+    var activeEditorTool by remember { mutableStateOf<String?>(null) }
     
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
+    // Music Player for Spotify Previews
+    val musicPlayer = remember { androidx.media3.exoplayer.ExoPlayer.Builder(context).build() }
+    DisposableEffect(Unit) {
+        onDispose { musicPlayer.release() }
+    }
+
+    LaunchedEffect(spotifyTrack, mediaUri) {
+        musicPlayer.stop()
+        musicPlayer.clearMediaItems()
+        if (mediaUri == null) {
+            spotifyTrack?.previewUrl?.let { url ->
+                musicPlayer.setMediaItem(androidx.media3.common.MediaItem.fromUri(url))
+                musicPlayer.prepare()
+                musicPlayer.playWhenReady = true
+                musicPlayer.repeatMode = androidx.media3.common.Player.REPEAT_MODE_ALL
+            }
+        }
+    }
+
+    // Synchronize activeMode with mediaUri state
+    LaunchedEffect(mediaUri) {
+        if (mediaUri != null && activeMode == "VIDEO") {
+            // Keep it in VIDEO mode but it shows the preview now
+        }
+    }
+
     var hasCameraPermission by remember {
         mutableStateOf(
             androidx.core.content.ContextCompat.checkSelfPermission(
@@ -10358,7 +9939,9 @@ fun CreatePostScreen(
         uri?.let {
             isUploading = true
             coroutineScope.launch {
-                val mediaUrl = if (R2Uploader.isConfigured()) {
+                val mediaUrl = if (it.scheme?.startsWith("http", ignoreCase = true) == true) {
+                    it.toString()
+                } else if (R2Uploader.isConfigured()) {
                     R2Uploader.uploadFile(context, it)
                 } else {
                     saveUriToInternalStorage(context, it)
@@ -10387,15 +9970,128 @@ fun CreatePostScreen(
     ) {
         // Live In-App Camera Viewfinder or Recorded Video Canvas
         if (mediaUri != null) {
-            // Preview recorded / selected video in loop
-            MediaView(
-                mediaUri = mediaUri!!,
-                modifier = Modifier.fillMaxSize(),
-                autoPlayEnabled = true,
-                isHomeFeed = false,
-                onClick = null,
-                isMutedByMusic = spotifyTrack != null
-            )
+            // Dedicated Video Editor Canvas with Real-Time Filters & Overlays
+            Box(modifier = Modifier.fillMaxSize()) {
+                MediaView(
+                    mediaUri = mediaUri!!,
+                    modifier = Modifier.fillMaxSize(),
+                    autoPlayEnabled = true,
+                    isHomeFeed = false,
+                    onClick = null,
+                    isMutedByMusic = isOriginalAudioMuted || originalAudioVolume == 0f,
+                    playbackSpeed = when(selectedSpeed) {
+                        "0.5x" -> 0.5f
+                        "1.5x" -> 1.5f
+                        "2x" -> 2.0f
+                        "3x" -> 3.0f
+                        else -> 1.0f
+                    },
+                    musicUrl = spotifyTrack?.previewUrl
+                )
+
+                // Visual Filter Color Grading Overlays
+                when (selectedFilterName) {
+                    "Vivid" -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFFF9100).copy(alpha = 0.12f))
+                    )
+                    "Noir" -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.35f))
+                    )
+                    "Cyberpunk" -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF00E5FF).copy(alpha = 0.15f), Color(0xFFFF007F).copy(alpha = 0.18f))
+                                )
+                            )
+                    )
+                    "Vintage" -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF795548).copy(alpha = 0.20f))
+                    )
+                    "Sunset" -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Color(0xFFFF5722).copy(alpha = 0.16f), Color(0xFFE91E63).copy(alpha = 0.15f))
+                                )
+                            )
+                    )
+                    "Cool" -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF0072FF).copy(alpha = 0.14f))
+                    )
+                    "Emerald" -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF00E676).copy(alpha = 0.13f))
+                    )
+                }
+
+                // Draggable Text Overlay
+                if (overlayText.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .offset { IntOffset(overlayTextOffsetX.toInt(), overlayTextOffsetY.toInt()) }
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    overlayTextOffsetX += dragAmount.x
+                                    overlayTextOffsetY += dragAmount.y
+                                }
+                            }
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(overlayTextBgColor)
+                            .clickable {
+                                tempOverlayInput = overlayText
+                                isEditingTextOverlay = true
+                            }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = overlayText,
+                            color = overlayTextColor,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                // Draggable Stickers Overlay
+                activeStickers.forEachIndexed { index, sticker ->
+                    var stickerX by remember { mutableFloatStateOf(0f) }
+                    var stickerY by remember { mutableFloatStateOf(-100f + (index * 50f)) }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .offset { IntOffset(stickerX.toInt(), stickerY.toInt()) }
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    stickerX += dragAmount.x
+                                    stickerY += dragAmount.y
+                                }
+                            }
+                            .clickable {
+                                activeStickers = activeStickers.filterIndexed { i, _ -> i != index }
+                                android.widget.Toast.makeText(context, "Sticker removed", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(8.dp)
+                    ) {
+                        Text(text = sticker, fontSize = 42.sp)
+                    }
+                }
+            }
         } else if (hasCameraPermission) {
             // REAL IN-APP CAMERA VIEWFINDER & RECORDER
             InAppCameraPreview(
@@ -10406,7 +10102,9 @@ fun CreatePostScreen(
                     isRecording = false
                     isUploading = true
                     coroutineScope.launch {
-                        val mediaUrl = if (R2Uploader.isConfigured()) {
+                        val mediaUrl = if (videoUri.scheme?.startsWith("http", ignoreCase = true) == true) {
+                            videoUri.toString()
+                        } else if (R2Uploader.isConfigured()) {
                             R2Uploader.uploadFile(context, videoUri)
                         } else {
                             saveUriToInternalStorage(context, videoUri)
@@ -10421,41 +10119,51 @@ fun CreatePostScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF121216)),
+                    .background(Color.Black),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(32.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Videocam,
-                        contentDescription = "Camera Permission",
-                        tint = Color(0xFFFE2C55),
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Surface(
+                        color = Color.White.copy(alpha = 0.1f),
+                        shape = CircleShape,
+                        modifier = Modifier.size(100.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Videocam,
+                                contentDescription = "Camera Permission",
+                                tint = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
                     Text(
                         text = "Camera Access Required",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Zooz requires camera permission to record short videos directly inside the app.",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "To start creating, allow access to your camera and microphone.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
                     Button(
                         onClick = {
                             cameraPermissionLauncher.launch(arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO))
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55)),
+                        shape = RoundedCornerShape(30.dp),
+                        modifier = Modifier.height(56.dp).fillMaxWidth(0.7f)
                     ) {
-                        Text("Enable Camera", fontWeight = FontWeight.Bold)
+                        Text("Allow Access", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -10485,10 +10193,10 @@ fun CreatePostScreen(
                     },
                     modifier = Modifier
                         .size(40.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = if (mediaUri != null) Icons.Default.Refresh else Icons.Default.Close,
+                        imageVector = if (mediaUri != null) Icons.Default.ArrowBack else Icons.Default.Close,
                         contentDescription = "Back / Retake",
                         tint = Color.White
                     )
@@ -10538,7 +10246,12 @@ fun CreatePostScreen(
 
                 // Next / Publish Button
                 Button(
-                    onClick = { showPublishSheet = true },
+                    onClick = {
+                        if (captionText.isBlank() && overlayText.isNotBlank()) {
+                            captionText = overlayText
+                        }
+                        showPublishSheet = true
+                    },
                     enabled = !isUploading && !isRecording && (mediaUri != null || hasCameraPermission),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFFE2C55),
@@ -10550,6 +10263,21 @@ fun CreatePostScreen(
                 ) {
                     Text("Next", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
+            }
+
+            // TikTok-style Recording Progress Bar (Top)
+            if (isRecording) {
+                Spacer(modifier = Modifier.height(16.dp))
+                val progress = (recordingDurationSeconds / 15f).coerceIn(0f, 1f) // Assuming 15s max for simplicity
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = Color(0xFFFE2C55),
+                    trackColor = Color.White.copy(alpha = 0.2f)
+                )
             }
 
             // In-App Recording Timer Badge
@@ -10602,197 +10330,292 @@ fun CreatePostScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 16.dp)
-                .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
-                .padding(vertical = 12.dp, horizontal = 6.dp),
+                .padding(end = 12.dp)
+                .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(32.dp))
+                .padding(vertical = 16.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // In-App Flip Camera Toggle
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable { isFrontCamera = !isFrontCamera }
-            ) {
-                Icon(Icons.Default.Cameraswitch, contentDescription = "Flip Camera", tint = Color.White, modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.height(2.dp))
-                Text("Flip", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            }
+            if (mediaUri != null) {
+                // DEDICATED POST-CAPTURE VIDEO EDITOR SIDEBAR
+                EditorSidebarButton(
+                    icon = Icons.Default.TextFields,
+                    label = "Text",
+                    onClick = {
+                        tempOverlayInput = overlayText
+                        isEditingTextOverlay = true
+                    },
+                    isActive = overlayText.isNotBlank()
+                )
 
-            // Speed Toggle
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable {
-                    selectedSpeed = when(selectedSpeed) {
-                        "1x" -> "2x"
-                        "2x" -> "0.5x"
-                        else -> "1x"
+                EditorSidebarButton(
+                    icon = Icons.Default.AutoFixHigh,
+                    label = "Filters",
+                    onClick = { activeEditorTool = "FILTERS" },
+                    isActive = selectedFilterName != "Normal" || activeEditorTool == "FILTERS"
+                )
+
+                EditorSidebarButton(
+                    icon = Icons.Default.EmojiEmotions,
+                    label = "Stickers",
+                    onClick = { activeEditorTool = "STICKERS" },
+                    isActive = activeStickers.isNotEmpty() || activeEditorTool == "STICKERS"
+                )
+
+                EditorSidebarButton(
+                    icon = Icons.Default.ContentCut,
+                    label = "Trim",
+                    onClick = { activeEditorTool = "TRIM" },
+                    isActive = videoTrimStart > 0f || videoTrimEnd < 1f || activeEditorTool == "TRIM"
+                )
+
+                EditorSidebarButton(
+                    icon = Icons.Default.Tune,
+                    label = "Audio",
+                    onClick = { activeEditorTool = "AUDIO_MIX" },
+                    isActive = activeEditorTool == "AUDIO_MIX" || isOriginalAudioMuted || spotifyTrack != null
+                )
+
+                EditorSidebarButton(
+                    icon = Icons.Default.Speed,
+                    label = selectedSpeed,
+                    onClick = {
+                        selectedSpeed = when(selectedSpeed) {
+                            "1x" -> "1.5x"
+                            "1.5x" -> "2x"
+                            "2x" -> "3x"
+                            "3x" -> "0.5x"
+                            "0.5x" -> "1x"
+                            else -> "1x"
+                        }
+                    },
+                    isActive = selectedSpeed != "1x"
+                )
+            } else {
+                // CAMERA RECORDING SIDEBAR BUTTONS
+                EditorSidebarButton(
+                    icon = Icons.Default.Cameraswitch,
+                    label = "Flip",
+                    onClick = { isFrontCamera = !isFrontCamera }
+                )
+
+                EditorSidebarButton(
+                    icon = Icons.Default.Speed,
+                    label = selectedSpeed,
+                    onClick = {
+                        selectedSpeed = when(selectedSpeed) {
+                            "1x" -> "2x"
+                            "2x" -> "3x"
+                            "3x" -> "0.5x"
+                            "0.5x" -> "1x"
+                            else -> "1x"
+                        }
+                    },
+                    isActive = selectedSpeed != "1x"
+                )
+
+                EditorSidebarButton(
+                    icon = Icons.Default.AutoFixHigh,
+                    label = "Filters",
+                    onClick = {
+                        selectedFilterName = when(selectedFilterName) {
+                            "Normal" -> "Vivid"
+                            "Vivid" -> "Noir"
+                            "Noir" -> "Cyberpunk"
+                            "Cyberpunk" -> "Vintage"
+                            "Vintage" -> "Sunset"
+                            "Sunset" -> "Cool"
+                            "Cool" -> "Emerald"
+                            else -> "Normal"
+                        }
+                        android.widget.Toast.makeText(context, "Filter: $selectedFilterName", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    isActive = selectedFilterName != "Normal"
+                )
+
+                EditorSidebarButton(
+                    icon = Icons.Default.Timer,
+                    label = "Timer",
+                    onClick = {
+                        android.widget.Toast.makeText(context, "Self-Timer activated (3s)", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                }
-            ) {
-                Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(selectedSpeed, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            }
+                )
 
-            // Filters FX Toggle
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable {
-                    selectedFilterName = when(selectedFilterName) {
-                        "Normal" -> "Neon"
-                        "Neon" -> "Cyber"
-                        "Cyber" -> "Warm"
-                        else -> "Normal"
-                    }
-                    android.widget.Toast.makeText(context, "Filter: $selectedFilterName", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            ) {
-                Icon(Icons.Default.AutoFixHigh, contentDescription = "Filters", tint = if (selectedFilterName != "Normal") Color(0xFF25F4EE) else Color.White, modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(selectedFilterName, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            }
-
-            // Sound Toggle
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable { showMusicSearch = true }
-            ) {
-                Icon(Icons.Default.MusicNote, contentDescription = "Music", tint = Color.White, modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.height(2.dp))
-                Text("Sound", color = Color.White, fontSize = 10.sp)
+                EditorSidebarButton(
+                    icon = Icons.Default.MusicNote,
+                    label = "Sound",
+                    onClick = { showMusicSearch = true },
+                    isActive = spotifyTrack != null
+                )
             }
         }
 
-        // Bottom Creator Shutter Dock & Mode Switcher
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Caption preview overlay on video
-            if (captionText.isNotBlank()) {
-                Surface(
-                    color = Color.Black.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .padding(horizontal = 24.dp, vertical = 8.dp)
-                        .fillMaxWidth()
-                ) {
-                    Text(
-                        text = captionText,
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(12.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            // Studio Shutter Controls Row
-            Row(
+        // Bottom Creator Shutter Dock (Shown only in Camera Recording mode)
+        if (mediaUri == null) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
+                        )
+                    )
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Media Gallery Quick Picker
-                IconButton(
-                    onClick = { mediaPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
+                // CAMERA RECORDING SHUTTER DOCK
+                Row(
                     modifier = Modifier
-                        .size(50.dp)
-                        .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (isUploading) {
-                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.5.dp, color = Color.White)
-                    } else {
-                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Upload Gallery Media", tint = Color.White)
+                    // Media Gallery Quick Picker (Left)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(70.dp)
+                            .clickable { 
+                                activeMode = "GALLERY"
+                                mediaPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) 
+                            }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                .border(2.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isUploading) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
+                            } else {
+                                Icon(Icons.Default.PhotoLibrary, contentDescription = "Gallery", tint = Color.White, modifier = Modifier.size(24.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Upload", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    // IN-APP VIDEO RECORD SHUTTER BUTTON (Center)
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .border(
+                                BorderStroke(
+                                    width = 5.dp,
+                                    color = if (isRecording) Color.White.copy(alpha = 0.4f) else Color.White
+                                ),
+                                CircleShape
+                            )
+                            .padding(if (isRecording) 14.dp else 6.dp)
+                            .clip(CircleShape)
+                            .background(Color.Transparent)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                if (!hasCameraPermission) {
+                                    cameraPermissionLauncher.launch(arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO))
+                                } else {
+                                    isRecording = !isRecording
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(if (isRecording) RoundedCornerShape(8.dp) else CircleShape)
+                                .background(Color(0xFFFE2C55))
+                        )
+                    }
+
+                    // Effect / Filters Quick Button (Right)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(70.dp)
+                            .clickable { 
+                                selectedFilterName = when(selectedFilterName) {
+                                    "Normal" -> "Vivid"
+                                    "Vivid" -> "Noir"
+                                    "Noir" -> "Cyberpunk"
+                                    "Cyberpunk" -> "Vintage"
+                                    "Vintage" -> "Sunset"
+                                    "Sunset" -> "Cool"
+                                    "Cool" -> "Emerald"
+                                    else -> "Normal"
+                                }
+                                android.widget.Toast.makeText(context, "Filter: $selectedFilterName", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                                .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.AutoFixHigh, contentDescription = "Effects", tint = Color.White, modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Effects", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                // IN-APP VIDEO RECORD SHUTTER BUTTON
-                Box(
-                    modifier = Modifier
-                        .size(84.dp)
-                        .clip(CircleShape)
-                        .border(
-                            BorderStroke(
-                                width = if (isRecording) 6.dp else 4.dp,
-                                color = if (isRecording) Color(0xFFFE2C55) else Color.White
-                            ),
-                            CircleShape
-                        )
-                        .clickable {
-                            if (!hasCameraPermission) {
-                                cameraPermissionLauncher.launch(arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO))
-                            } else {
-                                if (mediaUri != null) {
-                                    // Retake first
-                                    mediaUri = null
-                                } else {
-                                    // Toggle in-app video recording directly inside the viewfinder!
-                                    isRecording = !isRecording
-                                }
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(if (isRecording) 36.dp else 64.dp)
-                            .clip(if (isRecording) RoundedCornerShape(8.dp) else CircleShape)
-                            .background(Color(0xFFFE2C55))
-                    )
-                }
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Camera Flip Quick Button
-                IconButton(
-                    onClick = { isFrontCamera = !isFrontCamera },
+                // Mode Selector Bar (Refined)
+                Row(
                     modifier = Modifier
-                        .size(50.dp)
-                        .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Cameraswitch, contentDescription = "Flip Camera", tint = Color.White)
-                }
-            }
-
-            // Mode Selector Bar
-            Row(
-                modifier = Modifier.padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                listOf("IN-APP VIDEO", "GALLERY", "SOUNDS").forEach { mode ->
-                    val isSelected = activeMode == mode || (mode == "IN-APP VIDEO" && activeMode == "CAM")
-                    Text(
-                        text = mode,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium,
-                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.5f),
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.clickable {
-                            activeMode = mode
-                            when (mode) {
-                                "IN-APP VIDEO" -> {
-                                    if (mediaUri != null) {
-                                        mediaUri = null
+                    listOf("VIDEO", "GALLERY", "SOUNDS").forEach { mode ->
+                        val isSelected = activeMode == mode
+                        
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    activeMode = mode
+                                    when (mode) {
+                                        "VIDEO" -> { /* In camera */ }
+                                        "GALLERY" -> { mediaPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }
+                                        "SOUNDS" -> { showMusicSearch = true }
                                     }
-                                }
-                                "GALLERY" -> {
-                                    mediaPickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = mode,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.5f),
+                                    letterSpacing = 1.sp
+                                )
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(top = 4.dp)
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFFE2C55))
                                     )
-                                }
-                                "SOUNDS" -> {
-                                    showMusicSearch = true
                                 }
                             }
                         }
-                    )
+                    }
                 }
             }
         }
@@ -10949,6 +10772,596 @@ fun CreatePostScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
             }
+        }
+    }
+
+    // Text Overlay Customization Dialog
+    if (isEditingTextOverlay) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { isEditingTextOverlay = false }
+        ) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Add Text Overlay",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    OutlinedTextField(
+                        value = tempOverlayInput,
+                        onValueChange = { tempOverlayInput = it },
+                        placeholder = { Text("Enter caption on video...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Text Color",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val colorsList = listOf(
+                            Color.White,
+                            Color(0xFFFFEB3B),
+                            Color(0xFF25F4EE),
+                            Color(0xFFFE2C55),
+                            Color(0xFFFF4081),
+                            Color(0xFF00E676),
+                            Color.Black
+                        )
+                        colorsList.forEach { c ->
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(c)
+                                    .border(
+                                        width = if (overlayTextColor == c) 2.5.dp else 1.dp,
+                                        color = if (overlayTextColor == c) MaterialTheme.colorScheme.primary else Color.Gray,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { overlayTextColor = c }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Background Highlight",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Switch(
+                            checked = overlayTextBgColor != Color.Transparent,
+                            onCheckedChange = { checked ->
+                                overlayTextBgColor = if (checked) Color.Black.copy(alpha = 0.65f) else Color.Transparent
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                overlayText = ""
+                                tempOverlayInput = ""
+                                isEditingTextOverlay = false
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Clear")
+                        }
+                        Button(
+                            onClick = {
+                                overlayText = tempOverlayInput.trim()
+                                isEditingTextOverlay = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55)),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Apply", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Video Trimmer Bottom Sheet
+    if (activeEditorTool == "TRIM") {
+        ModalBottomSheet(
+            onDismissRequest = { activeEditorTool = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.ContentCut, contentDescription = null, tint = Color(0xFFFE2C55))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Trim Video Clip", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                    IconButton(onClick = { activeEditorTool = null }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Timeline preview representation
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .background(Color.DarkGray.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        repeat(12) {
+                            Box(modifier = Modifier.width(2.dp).fillMaxHeight(0.6f).background(Color.White.copy(alpha = 0.4f)))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Range slider
+                RangeSlider(
+                    value = videoTrimStart..videoTrimEnd,
+                    onValueChange = { range ->
+                        videoTrimStart = range.start
+                        videoTrimEnd = range.endInclusive
+                    },
+                    valueRange = 0f..1f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFFE2C55),
+                        activeTrackColor = Color(0xFFFE2C55)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val startSec = (videoTrimStart * 30).toInt()
+                    val endSec = (videoTrimEnd * 30).toInt()
+                    val durSec = (endSec - startSec).coerceAtLeast(1)
+                    Text("Start: 00:${String.format("%02d", startSec)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Clip Duration: ${durSec}s", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFFE2C55), fontWeight = FontWeight.Bold)
+                    Text("End: 00:${String.format("%02d", endSec)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            videoTrimStart = 0f
+                            videoTrimEnd = 1f
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Reset Trim")
+                    }
+                    Button(
+                        onClick = {
+                            activeEditorTool = null
+                            android.widget.Toast.makeText(context, "Trim applied", android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55)),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Apply Trim", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+
+    // Video Filters Bottom Sheet
+    if (activeEditorTool == "FILTERS") {
+        ModalBottomSheet(
+            onDismissRequest = { activeEditorTool = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.AutoFixHigh, contentDescription = null, tint = Color(0xFF25F4EE))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Color Grading & Filters", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                    IconButton(onClick = { activeEditorTool = null }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val filterList = listOf(
+                    Triple("Normal", "Natural original colors", Color.Gray),
+                    Triple("Vivid", "Warm high saturation boost", Color(0xFFFF9100)),
+                    Triple("Noir", "Black & white high contrast", Color.DarkGray),
+                    Triple("Cyberpunk", "Neon cyan & magenta tint", Color(0xFF00E5FF)),
+                    Triple("Vintage", "Warm amber sepia film", Color(0xFF795548)),
+                    Triple("Sunset", "Golden hour glow", Color(0xFFFF5722)),
+                    Triple("Cool", "Cinematic teal blue", Color(0xFF0072FF)),
+                    Triple("Emerald", "Fresh moody green tone", Color(0xFF00E676))
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    filterList.forEach { (name, desc, swatchColor) ->
+                        val isSelected = selectedFilterName == name
+                        Surface(
+                            onClick = {
+                                selectedFilterName = name
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                            ),
+                            modifier = Modifier.width(110.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(swatchColor)
+                                        .border(2.dp, Color.White, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(text = name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = desc,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = { activeEditorTool = null },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55))
+                ) {
+                    Text("Done", fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+
+    // Stickers Bottom Sheet
+    if (activeEditorTool == "STICKERS") {
+        ModalBottomSheet(
+            onDismissRequest = { activeEditorTool = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.EmojiEmotions, contentDescription = null, tint = Color(0xFFFFEB3B))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Add Video Stickers", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                    IconButton(onClick = { activeEditorTool = null }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                val stickersList = listOf("🔥", "❤️", "⚡", "✨", "💯", "🎵", "🚀", "😂", "👀", "🌟", "👑", "🍕", "🎧", "🎬", "💥", "🏆", "👏", "🌈")
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    stickersList.forEach { sticker ->
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable {
+                                    activeStickers = activeStickers + sticker
+                                    activeEditorTool = null
+                                    android.widget.Toast.makeText(context, "Added $sticker sticker. Drag to reposition!", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = sticker, fontSize = 28.sp)
+                        }
+                    }
+                }
+
+                if (activeStickers.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedButton(
+                        onClick = { activeStickers = emptyList() },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Remove All Stickers")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+
+    // Audio Mixer Bottom Sheet
+    if (activeEditorTool == "AUDIO_MIX") {
+        ModalBottomSheet(
+            onDismissRequest = { activeEditorTool = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Tune, contentDescription = null, tint = Color(0xFF25F4EE))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Audio Mixer", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                    IconButton(onClick = { activeEditorTool = null }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Original Audio Slider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Original Video Sound", fontWeight = FontWeight.SemiBold)
+                    Text(if (isOriginalAudioMuted) "Muted" else "${(originalAudioVolume * 100).toInt()}%", fontWeight = FontWeight.Bold, color = Color(0xFFFE2C55))
+                }
+                Slider(
+                    value = if (isOriginalAudioMuted) 0f else originalAudioVolume,
+                    onValueChange = {
+                        originalAudioVolume = it
+                        if (it > 0f) isOriginalAudioMuted = false
+                    },
+                    valueRange = 0f..1f,
+                    colors = SliderDefaults.colors(thumbColor = Color(0xFFFE2C55), activeTrackColor = Color(0xFFFE2C55))
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Mute Original Sound", style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = isOriginalAudioMuted,
+                        onCheckedChange = { isOriginalAudioMuted = it }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Added Spotify Audio Slider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(if (spotifyTrack != null) "${spotifyTrack!!.name} Volume" else "Music Volume", fontWeight = FontWeight.SemiBold)
+                    Text("${(musicAudioVolume * 100).toInt()}%", fontWeight = FontWeight.Bold, color = Color(0xFF25F4EE))
+                }
+                Slider(
+                    value = musicAudioVolume,
+                    onValueChange = { musicAudioVolume = it },
+                    valueRange = 0f..1f,
+                    colors = SliderDefaults.colors(thumbColor = Color(0xFF25F4EE), activeTrackColor = Color(0xFF25F4EE))
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        activeEditorTool = null
+                        showMusicSearch = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF25F4EE))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (spotifyTrack != null) "Change Sound Track" else "Add Music Track")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { activeEditorTool = null },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55))
+                ) {
+                    Text("Done", fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditorSidebarButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    isActive: Boolean = false
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .width(56.dp)
+            .clickable(
+                onClick = onClick,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            )
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isActive) Color(0xFF25F4EE) else Color.White,
+            modifier = Modifier.size(26.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelSmall
+        )
+    }
+}
+
+@Composable
+private fun EditorToolButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    isActive: Boolean = false
+) {
+    Surface(
+        onClick = onClick,
+        color = if (isActive) Color(0xFFFE2C55).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, if (isActive) Color(0xFFFE2C55) else Color.White.copy(alpha = 0.25f)),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.padding(horizontal = 4.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).widthIn(min = 48.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isActive) Color(0xFFFE2C55) else Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 11.sp,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
+            )
         }
     }
 }

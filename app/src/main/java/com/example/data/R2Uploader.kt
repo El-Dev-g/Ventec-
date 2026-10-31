@@ -42,6 +42,12 @@ object R2Uploader {
     }
 
     suspend fun uploadFile(context: Context, uri: Uri): String? = withContext(Dispatchers.IO) {
+        val scheme = uri.scheme?.lowercase()
+        if (scheme == "http" || scheme == "https") {
+            Log.d(TAG, "Uri is already a remote web URL ($uri), returning URL directly")
+            return@withContext uri.toString()
+        }
+
         if (!isConfigured()) {
             Log.w(TAG, "Cloudflare R2 is not fully configured in environment variables / BuildConfig.")
             return@withContext null
@@ -49,7 +55,22 @@ object R2Uploader {
 
         try {
             val contentResolver = context.contentResolver
-            val originalMimeType = contentResolver.getType(uri) ?: "image/jpeg"
+            var originalMimeType = contentResolver.getType(uri) ?: ""
+            
+            // Fallback for local file URIs where getType might return null
+            if (originalMimeType.isBlank()) {
+                val uriString = uri.toString()
+                originalMimeType = when {
+                    uriString.endsWith(".mp4", ignoreCase = true) -> "video/mp4"
+                    uriString.endsWith(".webm", ignoreCase = true) -> "video/webm"
+                    uriString.endsWith(".gif", ignoreCase = true) -> "image/gif"
+                    uriString.endsWith(".webp", ignoreCase = true) -> "image/webp"
+                    uriString.endsWith(".jpg", ignoreCase = true) || uriString.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
+                    uriString.endsWith(".png", ignoreCase = true) -> "image/png"
+                    else -> "application/octet-stream"
+                }
+            }
+
             val isImage = originalMimeType.startsWith("image/") && !originalMimeType.contains("gif", ignoreCase = true)
             
             val extension: String
@@ -71,17 +92,17 @@ object R2Uploader {
                     // Fallback to raw bytes
                     val bytes = readBytes(context, uri) ?: return@withContext null
                     uploadBytesToUse = bytes
-                    uploadMimeType = originalMimeType
+                    uploadMimeType = originalMimeType.ifBlank { "image/jpeg" }
                     extension = "jpg"
                 }
             } else {
                 extension = when {
                     originalMimeType.contains("video", ignoreCase = true) -> "mp4"
                     originalMimeType.contains("gif", ignoreCase = true) -> "gif"
-                    else -> "jpg"
+                    else -> "mp4" // Default to mp4 if we can't tell, since this is a creator app
                 }
                 uploadBytesToUse = readBytes(context, uri) ?: return@withContext null
-                uploadMimeType = originalMimeType
+                uploadMimeType = if (originalMimeType.isNotBlank()) originalMimeType else if (extension == "mp4") "video/mp4" else "application/octet-stream"
             }
 
             val fileName = "r2_media_${System.currentTimeMillis()}_${(100..999).random()}.$extension"
@@ -94,6 +115,20 @@ object R2Uploader {
     }
 
     private fun readBytes(context: Context, uri: Uri): ByteArray? {
+        val scheme = uri.scheme?.lowercase()
+        if (scheme == "http" || scheme == "https") {
+            return try {
+                val request = Request.Builder().url(uri.toString()).build()
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        response.body?.bytes()
+                    } else null
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error downloading bytes from web URL: $uri", e)
+                null
+            }
+        }
         return try {
             val inputStream: InputStream = context.contentResolver.openInputStream(uri) ?: return null
             val byteBuffer = ByteArrayOutputStream()
@@ -111,6 +146,10 @@ object R2Uploader {
     }
 
     private fun optimizeImage(context: Context, uri: Uri): ByteArray? {
+        val scheme = uri.scheme?.lowercase()
+        if (scheme == "http" || scheme == "https") {
+            return null
+        }
         return try {
             val options = android.graphics.BitmapFactory.Options()
             options.inJustDecodeBounds = true

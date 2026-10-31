@@ -24,7 +24,15 @@
         "authorName": { "type": "string", "description": "Author display username" },
         "title": { "type": "string", "description": "Post title" },
         "content": { "type": "string", "description": "Post body content" },
-        "timestamp": { "type": "integer", "description": "Creation timestamp" }
+        "timestamp": { "type": "integer", "description": "Creation timestamp" },
+        "mediaUri": { "type": "string", "description": "Media content URL" },
+        "categories": { "type": "string" },
+        "tags": { "type": "string" },
+        "isReported": { "type": "boolean" },
+        "isPromoted": { "type": "boolean" },
+        "promoteFee": { "type": "number" },
+        "clicks": { "type": "integer" },
+        "impressions": { "type": "integer" }
       },
       "required": ["id", "authorId", "title", "content"]
     },
@@ -48,7 +56,10 @@
       "properties": {
         "id": { "type": "integer", "description": "Story identifier" },
         "authorId": { "type": "integer", "description": "Author user identifier" },
-        "timestamp": { "type": "integer", "description": "Creation timestamp" }
+        "timestamp": { "type": "integer", "description": "Creation timestamp" },
+        "mediaUri": { "type": "string" },
+        "text": { "type": "string" },
+        "expiresAt": { "type": "integer" }
       },
       "required": ["id", "authorId"]
     },
@@ -94,7 +105,11 @@
         "senderId": { "type": "integer", "description": "Sender user identifier" },
         "receiverId": { "type": "integer", "description": "Receiver user identifier" },
         "text": { "type": "string", "description": "Message text" },
-        "timestamp": { "type": "integer", "description": "Timestamp" }
+        "timestamp": { "type": "integer", "description": "Timestamp" },
+        "type": { "type": "string" },
+        "mediaUri": { "type": "string" },
+        "isReported": { "type": "boolean" },
+        "isRead": { "type": "boolean" }
       },
       "required": ["id", "senderId", "receiverId"]
     }

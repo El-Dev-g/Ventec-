@@ -97,7 +97,8 @@ object FirestoreService {
         "isPromoted" to post.isPromoted,
         "promoteFee" to post.promoteFee,
         "clicks" to post.clicks,
-        "impressions" to post.impressions
+        "impressions" to post.impressions,
+        "isReported" to post.isReported
     )
 
     private fun commentToMap(comment: Comment): Map<String, Any?> = mapOf(
@@ -260,7 +261,8 @@ object FirestoreService {
                 val promoteFee = doc.getDouble("promoteFee") ?: 0.0
                 val clicks = doc.getLong("clicks")?.toInt() ?: 0
                 val impressions = doc.getLong("impressions")?.toInt() ?: 0
-                Post(id, authorId, authorName, title, content, categories, tags, mediaUri, spotifyTrackId, spotifyTrackName, spotifyTrackArtist, spotifyTrackImageUrl, spotifyTrackPreviewUrl, isDraft, timestamp, commentsDisabled, isPromoted, promoteFee, clicks, impressions)
+                val isReported = doc.getBoolean("isReported") ?: false
+                Post(id, authorId, authorName, title, content, categories, tags, mediaUri, spotifyTrackId, spotifyTrackName, spotifyTrackArtist, spotifyTrackImageUrl, spotifyTrackPreviewUrl, isDraft, timestamp, commentsDisabled, isPromoted, promoteFee, clicks, impressions, isReported)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch all posts", e)

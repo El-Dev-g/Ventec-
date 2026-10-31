@@ -428,8 +428,9 @@ class BlogRepository(
                                     val promoteFee = doc.getDouble("promoteFee") ?: 0.0
                                     val clicks = doc.getLong("clicks")?.toInt() ?: 0
                                     val impressions = doc.getLong("impressions")?.toInt() ?: 0
+                                    val isReported = doc.getBoolean("isReported") ?: false
                                     
-                                    Post(id, authorId, authorName, title, content, categories, tags, mediaUri, spotifyTrackId, spotifyTrackName, spotifyTrackArtist, spotifyTrackImageUrl, spotifyTrackPreviewUrl, isDraft, timestamp, commentsDisabled, isPromoted, promoteFee, clicks, impressions)
+                                    Post(id, authorId, authorName, title, content, categories, tags, mediaUri, spotifyTrackId, spotifyTrackName, spotifyTrackArtist, spotifyTrackImageUrl, spotifyTrackPreviewUrl, isDraft, timestamp, commentsDisabled, isPromoted, promoteFee, clicks, impressions, isReported)
                                 }
                                 _allPosts.value = newPosts.sortedByDescending { it.timestamp }
                             } catch (e: Exception) {
