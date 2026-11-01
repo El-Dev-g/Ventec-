@@ -248,7 +248,7 @@ object FirestoreService {
                 val content = doc.getString("content") ?: ""
                 val categories = doc.getString("categories") ?: ""
                 val tags = doc.getString("tags") ?: ""
-                val mediaUri = doc.getString("mediaUri")
+                val mediaUri = sanitizeMediaUriString(doc.getString("mediaUri"))
                 val spotifyTrackId = doc.getString("spotifyTrackId")
                 val spotifyTrackName = doc.getString("spotifyTrackName")
                 val spotifyTrackArtist = doc.getString("spotifyTrackArtist")

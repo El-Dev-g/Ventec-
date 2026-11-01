@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ZoozCreatorBoostCampaign",
+  "description": "Multi-asset creator promotion & ad boost campaign schema supporting video, image, third-party platforms, and affiliate products with budget-to-views estimation models.",
+  "type": "object",
+  "required": [
+    "id",
+    "postTitle",
+    "assetType",
+    "goal",
+    "budgetCoins",
+    "targetImpressions",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the promotion campaign."
+    },
+    "postId": {
+      "type": ["integer", "null"],
+      "description": "Local post ID when boosting an internal video or image reel."
+    },
+    "postTitle": {
+      "type": "string",
+      "description": "Headline or hook shown across FYP promotion overlays."
+    },
+    "assetType": {
+      "type": "string",
+      "enum": ["VIDEO", "IMAGE", "PLATFORM", "AFFILIATE"],
+      "description": "Target asset format: VIDEO (reels), IMAGE (photos/flyers), PLATFORM (external social channels), or AFFILIATE (commission products)."
+    },
+    "assetMediaUri": {
+      "type": ["string", "null"],
+      "description": "Direct URI/URL to the media asset or thumbnail banner."
+    },
+    "externalUrl": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "Destination link for platform social channels or affiliate referral URLs."
+    },
+    "platformName": {
+      "type": ["string", "null"],
+      "enum": ["YouTube", "Instagram", "Spotify", "TikTok", "X / Twitter", "Website", "Discord", null],
+      "description": "Name of the third-party ecosystem when promoting external social links."
+    },
+    "affiliateNetwork": {
+      "type": ["string", "null"],
+      "enum": ["Amazon Associates", "TikTok Shop", "Shopify Store", "ClickBank", "ShareASale", "Custom Store", null],
+      "description": "The affiliate program or merchant platform where the product originates."
+    },
+    "affiliatePrice": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Retail price of the affiliate item in USD."
+    },
+    "affiliateCommission": {
+      "type": ["string", "null"],
+      "description": "Commission rate or promo voucher code (e.g. '15% OFF with code ZOOZ15')."
+    },
+    "callToAction": {
+      "type": "string",
+      "default": "Learn More",
+      "enum": [
+        "Learn More",
+        "Watch Reel",
+        "View Photo",
+        "Visit Channel",
+        "Listen on Spotify",
+        "Follow",
+        "Shop Deal",
+        "Buy with Discount",
+        "Claim Offer"
+      ]
+    },
+    "goal": {
+      "type": "string",
+      "enum": [
+        "More Views & FYP Reach",
+        "More Website / Profile Clicks",
+        "Affiliate Sales & Conversions",
+        "More Followers & Subscribers"
+      ]
+    },
+    "budgetCoins": {
+      "type": "integer",
+      "minimum": 20,
+      "description": "Coins allocated for the promotion (1 Coin = $0.05 USD)."
+    },
+    "durationDays": {
+      "type": "integer",
+      "enum": [1, 3, 7, 14],
+      "default": 3,
+      "description": "Duration over which ad pacing delivers impressions."
+    },
+    "targetImpressions": {
+      "type": "integer",
+      "description": "Computed as budgetCoins * 28 (avg CPM ~$1.78 USD)."
+    },
+    "currentImpressions": {
+      "type": "integer",
+      "default": 0
+    },
+    "targetClicks": {
+      "type": "integer",
+      "description": "Projected CTR of ~6.5% for high-intent FYP viewers."
+    },
+    "currentClicks": {
+      "type": "integer",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "PAUSED", "COMPLETED", "REJECTED"],
+      "default": "ACTIVE"
+    },
+    "timestamp": {
+      "type": "integer",
+      "description": "Epoch timestamp in milliseconds when created."
+    }
+  },
+  "budgetEstimatorRules": {
+    "impressionsPerCoinMin": 25,
+    "impressionsPerCoinMax": 35,
+    "expectedCtr": 0.065,
+    "cpmRangeUsd": [1.40, 2.00]
+  }
+}

@@ -124,6 +124,27 @@ class BlogViewModel(
         // Start Live Firestore database fetching / synchronization in background
         repository.startLiveFirestoreSync(viewModelScope)
 
+        // Background ticker for live Ad Boost campaign impression delivery
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(4000)
+                _boostCampaigns.value = _boostCampaigns.value.map { campaign ->
+                    if (campaign.status == "ACTIVE" && campaign.currentImpressions < campaign.targetImpressions) {
+                        val newImpressions = (campaign.currentImpressions + (18..42).random()).coerceAtMost(campaign.targetImpressions)
+                        val newClicks = (newImpressions * 0.065).toInt().coerceAtMost(campaign.targetClicks)
+                        val newStatus = if (newImpressions >= campaign.targetImpressions) "COMPLETED" else "ACTIVE"
+                        campaign.copy(
+                            currentImpressions = newImpressions,
+                            currentClicks = newClicks,
+                            status = newStatus
+                        )
+                    } else {
+                        campaign
+                    }
+                }
+            }
+        }
+
         viewModelScope.launch {
             try {
                 if (loggedIn != null) {
@@ -657,12 +678,17 @@ class BlogViewModel(
     private val followerCountFlows = java.util.concurrent.ConcurrentHashMap<Int, StateFlow<Int>>()
 
     fun getFollowerCount(userId: Int): StateFlow<Int> {
+        val currentUserId = currentUser.value?.id ?: 1
+        val isMainUser = (userId == currentUserId || userId == 1 || userId == 0)
         return followerCountFlows.getOrPut(userId) {
             repository.getFollowerCount(userId)
+                .map { count ->
+                    if (isMainUser && count < 1500) 1500 + count else count
+                }
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(5000),
-                    initialValue = 0
+                    initialValue = if (isMainUser) 1500 else 0
                 )
         }
     }
@@ -1030,8 +1056,13 @@ class BlogViewModel(
     }
 
     // Creator Wallet & Gifting
-    private val _walletBalance = MutableStateFlow(24.50)
-    val walletBalance: StateFlow<Double> = _walletBalance.asStateFlow()
+    // Creator Diamonds Balance (Actual Earnings)
+    private val _userDiamonds = MutableStateFlow(490) // Initial starting balance
+    val userDiamonds: StateFlow<Int> = _userDiamonds.asStateFlow()
+
+    val walletBalance: StateFlow<Double> = _userDiamonds
+        .map { it * 0.05 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 24.50)
 
     private val _giftHistory = MutableStateFlow<List<GiftTransaction>>(
         listOf(
@@ -1054,75 +1085,254 @@ class BlogViewModel(
         authorId: Int,
         giftName: String,
         giftIcon: String,
-        amountUsd: Double,
-        diamonds: Int,
+        coinsCost: Int,
+        diamondsCredit: Int,
         onSuccess: () -> Unit,
         onInsufficientCredits: (needed: Int) -> Unit
     ) {
-        if (_userCoins.value < diamonds) {
-            val needed = diamonds - _userCoins.value
+        if (_userCoins.value < coinsCost) {
+            val needed = coinsCost - _userCoins.value
             onInsufficientCredits(needed)
             return
         }
 
         // Deduct coins from user balance
-        _userCoins.value -= diamonds
+        _userCoins.value -= coinsCost
 
         val sender = currentUser.value
+        val amountUsd = diamondsCredit * 0.05 // 1 Diamond = $0.05 USD
+        
         val tx = GiftTransaction(
             senderId = sender?.id ?: 0,
             senderName = sender?.username ?: "Supporter",
             recipientId = authorId,
             giftName = giftName,
-            giftIcon = giftIcon,
+            giftIcon = emojiForGift(giftName),
             amountUsd = amountUsd,
-            diamonds = diamonds
+            diamonds = diamondsCredit
         )
         _giftHistory.value = listOf(tx) + _giftHistory.value
+        
         val currentUserId = sender?.id ?: 0
+        // If the recipient is the current user (e.g. testing) or the system admin (ID 1)
         if (authorId == currentUserId || authorId == 1) {
-            _walletBalance.value += amountUsd
+            _userDiamonds.value += diamondsCredit
         }
         onSuccess()
     }
 
-    fun sendGift(authorId: Int, giftName: String, giftIcon: String, amountUsd: Double, diamonds: Int, onComplete: () -> Unit = {}) {
-        sendGift(
-            authorId = authorId,
-            giftName = giftName,
-            giftIcon = giftIcon,
-            amountUsd = amountUsd,
-            diamonds = diamonds,
-            onSuccess = onComplete,
-            onInsufficientCredits = {}
-        )
+    private fun emojiForGift(name: String): String = when(name.lowercase()) {
+        "rose" -> "🌹"
+        "coffee" -> "☕"
+        "fire" -> "🔥"
+        "crown" -> "👑"
+        "diamond" -> "💎"
+        else -> "🎁"
     }
 
-    fun withdrawFunds(amount: Double, method: String, onComplete: () -> Unit, onError: (String) -> Unit) {
-        if (amount > _walletBalance.value) {
-            onError("Insufficient funds. Available: $${String.format("%.2f", _walletBalance.value)}")
+
+    private val _withdrawalHistory = MutableStateFlow<List<WithdrawalRecord>>(
+        listOf(
+            WithdrawalRecord(amountUsd = 20.00, method = "PayPal", status = "Completed", timestamp = System.currentTimeMillis() - 86400000L)
+        )
+    )
+    val withdrawalHistory: StateFlow<List<WithdrawalRecord>> = _withdrawalHistory.asStateFlow()
+
+    fun withdrawFunds(amount: Double, method: String, accountDetails: String, onComplete: () -> Unit, onError: (String) -> Unit) {
+        val minThreshold = 50.00
+        if (amount < minThreshold) {
+            onError("Minimum payout threshold is $$minThreshold USD.")
             return
         }
-        _walletBalance.value -= amount
+        val currentBalance = userDiamonds.value * 0.05
+        if (amount > currentBalance) {
+            onError("Insufficient funds. Available: $${String.format("%.2f", currentBalance)}")
+            return
+        }
+        if (accountDetails.isBlank()) {
+            onError("Please enter valid account/destination details for $method.")
+            return
+        }
+        val diamondsToDeduct = (amount / 0.05).toInt()
+        _userDiamonds.value -= diamondsToDeduct
+        val tx = WithdrawalRecord(amountUsd = amount, method = "$method ($accountDetails)", status = "Processing")
+        _withdrawalHistory.value = listOf(tx) + _withdrawalHistory.value
         onComplete()
     }
 
-    // Creator Ad Boost Campaigns
+    // Creator Ad Boost & Multi-Asset Promotion Campaigns
     private val _boostCampaigns = MutableStateFlow<List<CreatorBoostCampaign>>(
         listOf(
             CreatorBoostCampaign(
                 postId = 1,
-                postTitle = "Summer Vibe Sunset Reel",
-                goal = "More Views",
-                budgetCoins = 200,
-                targetImpressions = 5000,
-                currentImpressions = 3420,
+                postTitle = "Cyberpunk Neo-Tokyo Cyber City 4K",
+                assetType = "VIDEO",
+                assetMediaUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                callToAction = "Watch Full Reel",
+                goal = "More Video Views & Reach",
+                budgetCoins = 250,
+                durationDays = 7,
+                targetImpressions = 7000,
+                currentImpressions = 4820,
+                targetClicks = 455,
+                currentClicks = 312,
                 status = "ACTIVE"
+            ),
+            CreatorBoostCampaign(
+                postTitle = "Urban Streetwear Summer Drop 2026",
+                assetType = "IMAGE",
+                assetMediaUri = "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=80",
+                externalUrl = "https://zoozwear.store/summer",
+                platformName = "Brand Store",
+                callToAction = "View Lookbook",
+                goal = "More Profile & Website Clicks",
+                budgetCoins = 160,
+                durationDays = 5,
+                targetImpressions = 4480,
+                currentImpressions = 2940,
+                targetClicks = 291,
+                currentClicks = 188,
+                status = "ACTIVE"
+            ),
+            CreatorBoostCampaign(
+                postTitle = "TechPulse Official YouTube Channel",
+                assetType = "PLATFORM",
+                platformName = "YouTube",
+                assetMediaUri = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=1000&q=80",
+                externalUrl = "https://youtube.com/@techpulse_official",
+                callToAction = "Subscribe on YouTube",
+                goal = "More Subscribers & Channel Clicks",
+                budgetCoins = 180,
+                durationDays = 5,
+                targetImpressions = 5040,
+                currentImpressions = 3210,
+                targetClicks = 327,
+                currentClicks = 205,
+                status = "ACTIVE"
+            ),
+            CreatorBoostCampaign(
+                postTitle = "Apex Wireless Pro ANC Earbuds (20% OFF)",
+                assetType = "AFFILIATE",
+                assetMediaUri = "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=1000&q=80",
+                externalUrl = "https://amazon.com/dp/B08XYZ1234?tag=zoozcreator-20",
+                platformName = "Amazon Associates",
+                affiliateNetwork = "Amazon Associates",
+                affiliatePrice = 79.99,
+                affiliateCommission = "12% ($9.60 / sale • Code: ZOOZ20)",
+                callToAction = "Shop 20% Off Deal",
+                goal = "Affiliate Sales & Conversions",
+                budgetCoins = 200,
+                durationDays = 7,
+                targetImpressions = 5600,
+                currentImpressions = 3680,
+                targetClicks = 364,
+                currentClicks = 246,
+                status = "ACTIVE"
+            ),
+            CreatorBoostCampaign(
+                postTitle = "Official Spotify Artist & Beats",
+                assetType = "PLATFORM",
+                platformName = "Spotify",
+                assetMediaUri = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1000&q=80",
+                externalUrl = "https://open.spotify.com/artist/zoozcreator",
+                callToAction = "Listen on Spotify",
+                goal = "More Profile & Website Clicks",
+                budgetCoins = 120,
+                durationDays = 3,
+                targetImpressions = 3360,
+                currentImpressions = 3360,
+                targetClicks = 218,
+                currentClicks = 218,
+                status = "COMPLETED"
             )
         )
     )
     val boostCampaigns: StateFlow<List<CreatorBoostCampaign>> = _boostCampaigns.asStateFlow()
 
+    fun recordCampaignImpression(campaignId: String) {
+        val currentList = _boostCampaigns.value
+        _boostCampaigns.value = currentList.map {
+            if (it.id == campaignId) {
+                val newImp = it.currentImpressions + 1
+                val newStatus = if (newImp >= it.targetImpressions) "COMPLETED" else it.status
+                it.copy(currentImpressions = newImp, status = newStatus)
+            } else {
+                it
+            }
+        }
+    }
+
+    fun recordCampaignClick(campaignId: String) {
+        val currentList = _boostCampaigns.value
+        _boostCampaigns.value = currentList.map {
+            if (it.id == campaignId) {
+                it.copy(currentClicks = it.currentClicks + 1)
+            } else {
+                it
+            }
+        }
+    }
+
+    fun createBoostCampaign(
+        postId: Int? = null,
+        postTitle: String,
+        assetType: String = "VIDEO",
+        assetMediaUri: String? = null,
+        externalUrl: String? = null,
+        platformName: String? = null,
+        affiliateNetwork: String? = null,
+        affiliatePrice: Double? = null,
+        affiliateCommission: String? = null,
+        callToAction: String = "Learn More",
+        goal: String,
+        budgetCoins: Int,
+        durationDays: Int = 3,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (_userCoins.value < budgetCoins) {
+            onError("Insufficient Coins balance (${_userCoins.value} 🪙 available). Top up coins to launch promotion.")
+            return
+        }
+        _userCoins.value -= budgetCoins
+        val targetImpressions = budgetCoins * 28
+        val targetClicks = (targetImpressions * 0.065).toInt().coerceAtLeast(1)
+        val initialImpressions = (targetImpressions * 0.08).toInt()
+        val initialClicks = (initialImpressions * 0.065).toInt()
+        val campaign = CreatorBoostCampaign(
+            postId = postId,
+            postTitle = postTitle,
+            assetType = assetType,
+            assetMediaUri = assetMediaUri,
+            externalUrl = externalUrl,
+            platformName = platformName,
+            affiliateNetwork = affiliateNetwork,
+            affiliatePrice = affiliatePrice,
+            affiliateCommission = affiliateCommission,
+            callToAction = callToAction,
+            goal = goal,
+            budgetCoins = budgetCoins,
+            durationDays = durationDays,
+            targetImpressions = targetImpressions,
+            currentImpressions = initialImpressions,
+            targetClicks = targetClicks,
+            currentClicks = initialClicks,
+            status = "ACTIVE"
+        )
+        _boostCampaigns.value = listOf(campaign) + _boostCampaigns.value
+        if (postId != null && postId > 0) {
+            viewModelScope.launch {
+                try {
+                    repository.boostPost(postId, budgetCoins.toDouble())
+                } catch (e: Exception) {
+                    // Ignore
+                }
+            }
+        }
+        onSuccess()
+    }
+
+    // Overload for backward compatibility
     fun createBoostCampaign(
         postId: Int,
         postTitle: String,
@@ -1131,23 +1341,16 @@ class BlogViewModel(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        if (_userCoins.value < budgetCoins) {
-            onError("Insufficient Coins balance (${_userCoins.value} 🪙 available). Top up coins to launch campaign.")
-            return
-        }
-        _userCoins.value -= budgetCoins
-        val targetImpressions = budgetCoins * 25
-        val campaign = CreatorBoostCampaign(
+        createBoostCampaign(
             postId = postId,
             postTitle = postTitle,
+            assetType = "VIDEO",
             goal = goal,
             budgetCoins = budgetCoins,
-            targetImpressions = targetImpressions,
-            currentImpressions = (targetImpressions * 0.12).toInt(),
-            status = "ACTIVE"
+            durationDays = 3,
+            onSuccess = onSuccess,
+            onError = onError
         )
-        _boostCampaigns.value = listOf(campaign) + _boostCampaigns.value
-        onSuccess()
     }
 
     // Interactive Polls
@@ -1193,12 +1396,23 @@ data class GiftTransaction(
 
 data class CreatorBoostCampaign(
     val id: String = java.util.UUID.randomUUID().toString(),
-    val postId: Int,
+    val postId: Int? = null,
     val postTitle: String,
+    val assetType: String = "VIDEO", // "VIDEO", "IMAGE", "PLATFORM", "AFFILIATE"
+    val assetMediaUri: String? = null,
+    val externalUrl: String? = null,
+    val platformName: String? = null, // "YouTube", "Instagram", "Spotify", "TikTok", "Website", etc.
+    val affiliateNetwork: String? = null, // "Amazon Associates", "TikTok Shop", "Shopify", "ClickBank", etc.
+    val affiliatePrice: Double? = null,
+    val affiliateCommission: String? = null,
+    val callToAction: String = "Learn More",
     val goal: String,
     val budgetCoins: Int,
+    val durationDays: Int = 3,
     val targetImpressions: Int,
     val currentImpressions: Int,
+    val targetClicks: Int = (targetImpressions * 0.065).toInt().coerceAtLeast(1),
+    val currentClicks: Int = 0,
     val status: String,
     val timestamp: Long = System.currentTimeMillis()
 )
@@ -1219,3 +1433,12 @@ data class AlertNotification(
     val isRead: Boolean = false,
     val associatedUserId: Int? = null
 )
+
+data class WithdrawalRecord(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val amountUsd: Double,
+    val method: String,
+    val status: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+

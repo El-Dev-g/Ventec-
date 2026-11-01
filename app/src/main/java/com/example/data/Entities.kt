@@ -211,3 +211,13 @@ data class Story(
     val timestamp: Long = System.currentTimeMillis(),
     val expiresAt: Long = System.currentTimeMillis() + 86400000L // 24 hours (86,400,000 ms)
 )
+
+fun sanitizeMediaUriString(uri: String?): String? {
+    if (uri.isNullOrBlank()) return null
+    val lower = uri.lowercase(java.util.Locale.ROOT)
+    if (lower.contains("mixkit") || lower.contains("videoblocks") || lower.contains("pexels") || lower.contains("pixabay") || lower.contains("getty") || lower.contains("shutterstock") || lower.contains("403")) {
+        return "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+    }
+    return uri
+}
+

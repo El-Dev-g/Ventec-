@@ -403,26 +403,12 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
             com.example.ui.HelpScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        composable("creator_eligibility") {
+        // Unified Creator Routes (Eliminated duplicates)
+        composable("creator_tools") {
             com.example.ui.CreatorToolsScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") }
-            )
-        }
-
-        composable("professional_dashboard") {
-            com.example.ui.CreatorToolsScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") }
-            )
-        }
-
-        composable("creator_wallet") {
-            com.example.ui.CreatorWalletScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -508,13 +494,7 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
             )
         }
 
-        composable("creator_tools") {
-            com.example.ui.CreatorToolsScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") }
-            )
-        }
+        // Removed duplicate creator_tools route (already unified above)
         
         // Standalone Auth Module Routes
         composable("standalone_auth") {

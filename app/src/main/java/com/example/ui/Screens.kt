@@ -10,6 +10,7 @@ import android.widget.TextView
 import android.text.util.Linkify
 import androidx.core.text.util.LinkifyCompat
 import androidx.compose.ui.graphics.toArgb
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
@@ -1830,6 +1832,18 @@ fun HomeCategoryChipsRow(
     }
 }
 
+sealed class FeedItem {
+    abstract val feedKey: String
+
+    data class OrganicPost(val post: Post) : FeedItem() {
+        override val feedKey: String get() = "post_${post.id}"
+    }
+
+    data class PromotedAd(val campaign: CreatorBoostCampaign) : FeedItem() {
+        override val feedKey: String get() = "ad_${campaign.id}"
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -1840,6 +1854,7 @@ fun HomeScreen(
     onNavigateToUserProfile: (Int) -> Unit
 ) {
     val posts by viewModel.allPosts.collectAsStateWithLifecycle()
+    val boostCampaigns by viewModel.boostCampaigns.collectAsStateWithLifecycle()
     val user by viewModel.currentUser.collectAsStateWithLifecycle()
     val selectedFilter by viewModel.selectedFilter.collectAsStateWithLifecycle()
     val notifications by viewModel.notifications.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -1849,15 +1864,19 @@ fun HomeScreen(
     var showChatSheet by remember { mutableStateOf(false) }
     var selectedPostForComments by remember { mutableStateOf<Post?>(null) }
     var currentTab by remember { mutableStateOf("home") }
-    var feedSubTab by remember { mutableStateOf("foryou") } // "foryou" vs "following"
+    var feedSubTab by remember { mutableStateOf("foryou") } // "foryou", "following"
+
+    BackHandler(enabled = currentTab != "home") {
+        currentTab = "home"
+    }
     var showStoriesTray by remember { mutableStateOf(false) }
 
-    var visibleLimit by remember { mutableStateOf(5) }
+    var visibleLimit by remember { mutableStateOf(10) }
     var isLoadingMore by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(selectedFilter) {
-        visibleLimit = 5
+        visibleLimit = 10
     }
 
     LaunchedEffect(listState, posts, posts.size) {
@@ -1868,9 +1887,9 @@ fun HomeScreen(
             
             lastVisibleIndex >= totalItems - 1 && totalItems > 0
         }.collect { isAtEnd ->
-            if (isAtEnd && visibleLimit < posts.size && !isLoadingMore) {
+            if (isAtEnd && visibleLimit < (posts.size + boostCampaigns.size) && !isLoadingMore) {
                 isLoadingMore = true
-                visibleLimit = (visibleLimit + 5).coerceAtMost(posts.size)
+                visibleLimit = (visibleLimit + 5).coerceAtMost(posts.size + boostCampaigns.size + 10)
                 isLoadingMore = false
             }
         }
@@ -1883,6 +1902,30 @@ fun HomeScreen(
         } else {
             posts
         }
+    }
+
+    val feedItems = remember(filteredFeedPosts, boostCampaigns, feedSubTab) {
+        val activeCampaigns = boostCampaigns.filter { it.status == "ACTIVE" }
+        val list = mutableListOf<FeedItem>()
+        var campIdx = 0
+        if (filteredFeedPosts.isEmpty()) {
+            activeCampaigns.forEach { list.add(FeedItem.PromotedAd(it)) }
+        } else {
+            filteredFeedPosts.forEachIndexed { index, post ->
+                list.add(FeedItem.OrganicPost(post))
+                // Seamlessly display promotional content as mixed posts among real posts
+                if (activeCampaigns.isNotEmpty() && (index == 0 || (index > 0 && index % 3 == 0))) {
+                    val camp = activeCampaigns[campIdx % activeCampaigns.size]
+                    list.add(FeedItem.PromotedAd(camp))
+                    campIdx++
+                }
+            }
+        }
+        list
+    }
+
+    val visibleFeedItems = remember(feedItems, visibleLimit) {
+        feedItems.take(visibleLimit)
     }
 
     val visiblePosts = remember(filteredFeedPosts, visibleLimit) {
@@ -2103,6 +2146,7 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
+
                     val chunkedPosts = remember(visiblePosts) {
                         visiblePosts.chunked(3)
                     }
@@ -2154,6 +2198,10 @@ fun HomeScreen(
                                                         modifier = Modifier.size(14.dp)
                                                     )
                                                 }
+                                            }
+
+                                            if (post.isPromoted) {
+                                                // Organic mixing: No visible promo badge as requested
                                             }
                                             
                                             Box(
@@ -2793,8 +2841,8 @@ fun HomeScreen(
                     viewModel = viewModel,
                     onNavigateBack = { currentTab = "home" },
                     onNavigateToPostDetail = onNavigateToPostDetail,
-                    onNavigateToFollowers = { onNavigateToMenuDest("followers?userId=$it") },
-                    onNavigateToFollowing = { onNavigateToMenuDest("following?userId=$it") },
+                    onNavigateToFollowers = { onNavigateToMenuDest("followers/$it") },
+                    onNavigateToFollowing = { onNavigateToMenuDest("following/$it") },
                     onNavigateToMessaging = { onNavigateToMenuDest("messaging?userId=$it") },
                     onNavigateToSettings = { onNavigateToMenuDest("settings") },
                     onNavigateToMenuDest = onNavigateToMenuDest
@@ -2802,48 +2850,62 @@ fun HomeScreen(
             }
             else -> {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { visiblePosts.size })
+                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { visibleFeedItems.size })
 
-                    // Automatically log watch history
-                    LaunchedEffect(pagerState.currentPage, visiblePosts) {
-                        val currentPost = visiblePosts.getOrNull(pagerState.currentPage)
-                        if (currentPost != null) {
-                            viewModel.recordWatchHistory(currentPost.id)
+                    // Automatically log watch history or campaign impressions
+                    LaunchedEffect(pagerState.currentPage, visibleFeedItems) {
+                        val currentItem = visibleFeedItems.getOrNull(pagerState.currentPage)
+                        if (currentItem is FeedItem.OrganicPost) {
+                            viewModel.recordWatchHistory(currentItem.post.id)
+                        } else if (currentItem is FeedItem.PromotedAd) {
+                            viewModel.recordCampaignImpression(currentItem.campaign.id)
                         }
                     }
                     
                     androidx.compose.foundation.pager.VerticalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
-                        key = { page -> visiblePosts.getOrNull(page)?.id ?: "empty_$page" }
+                        key = { page -> visibleFeedItems.getOrNull(page)?.feedKey ?: "empty_$page" }
                     ) { page ->
-                        val post = visiblePosts.getOrNull(page)
-                        if (post != null) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                PostItem(
-                                    post = post,
-                                    viewModel = viewModel,
-                                    onClick = { onNavigateToPostDetail(post.id) },
-                                    onAuthorClick = onNavigateToUserProfile,
-                                    isHomeFeed = true,
-                                    onCommentsClick = { selectedPostForComments = post },
-                                    onSoundClick = { track, artist, preview, img ->
-                                        val encodedTrack = java.net.URLEncoder.encode(track, "UTF-8")
-                                        val encodedArtist = java.net.URLEncoder.encode(artist, "UTF-8")
-                                        val encodedPreview = java.net.URLEncoder.encode(preview ?: "", "UTF-8")
-                                        val encodedImg = java.net.URLEncoder.encode(img ?: "", "UTF-8")
-                                        onNavigateToMenuDest("sound_detail?trackName=$encodedTrack&trackArtist=$encodedArtist&previewUrl=$encodedPreview&imageUrl=$encodedImg")
-                                    },
-                                    onTagClick = { tag ->
-                                        viewModel.setFilter(tag)
-                                        currentTab = "search"
-                                    }
-                                )
+                        when (val item = visibleFeedItems.getOrNull(page)) {
+                            is FeedItem.OrganicPost -> {
+                                val post = item.post
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    PostItem(
+                                        post = post,
+                                        viewModel = viewModel,
+                                        onClick = { onNavigateToPostDetail(post.id) },
+                                        onAuthorClick = onNavigateToUserProfile,
+                                        isHomeFeed = true,
+                                        onCommentsClick = { selectedPostForComments = post },
+                                        onSoundClick = { track, artist, preview, img ->
+                                            val encodedTrack = java.net.URLEncoder.encode(track, "UTF-8")
+                                            val encodedArtist = java.net.URLEncoder.encode(artist, "UTF-8")
+                                            val encodedPreview = java.net.URLEncoder.encode(preview ?: "", "UTF-8")
+                                            val encodedImg = java.net.URLEncoder.encode(img ?: "", "UTF-8")
+                                            onNavigateToMenuDest("sound_detail?trackName=$encodedTrack&trackArtist=$encodedArtist&previewUrl=$encodedPreview&imageUrl=$encodedImg")
+                                        },
+                                        onTagClick = { tag ->
+                                            viewModel.setFilter(tag)
+                                            currentTab = "search"
+                                        }
+                                    )
+                                }
                             }
+                            is FeedItem.PromotedAd -> {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    PromotedCampaignItem(
+                                        campaign = item.campaign,
+                                        viewModel = viewModel,
+                                        onNavigateToMenuDest = onNavigateToMenuDest
+                                    )
+                                }
+                            }
+                            null -> {}
                         }
                     }
 
-                    if (visiblePosts.isEmpty()) {
+                    if (visibleFeedItems.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.75f)),
@@ -2877,10 +2939,14 @@ fun HomeScreen(
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Button(
-                                        onClick = onNavigateToCreatePost,
+                                        onClick = { onNavigateToCreatePost() },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55))
                                     ) {
-                                        Text("Create Post", fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "Create Post",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
                                     }
                                 }
                             }
@@ -3026,29 +3092,15 @@ fun MenuContent(user: com.example.data.User?, followerCount: Int, onLogout: () -
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         }
         ListItem(
-            headlineContent = { Text("Creator Tools & Eligibility") },
-            supportingContent = { Text("Analytics, Monetization & Ad Boosts") },
-            leadingContent = { Icon(Icons.Default.TrendingUp, contentDescription = "Creator Tools", tint = Color(0xFFFE2C55)) },
+            headlineContent = { Text("Creator Studio & Earnings") },
+            leadingContent = { Icon(Icons.Default.TrendingUp, contentDescription = "Creator Studio", tint = Color(0xFFFE2C55)) },
             modifier = Modifier.clickable { onItemClick("creator_tools") }
-        )
-        ListItem(
-            headlineContent = { Text("Creator Wallet & Earnings") },
-            supportingContent = { Text("Tips, Diamonds & Cash Out") },
-            leadingContent = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Creator Wallet", tint = Color(0xFF00C853)) },
-            modifier = Modifier.clickable { onItemClick("creator_wallet") }
         )
         ListItem(
             headlineContent = { Text("Watch History") },
             leadingContent = { Icon(Icons.Default.History, contentDescription = "Watch History") },
             modifier = Modifier.clickable { onItemClick("watch_history") }
         )
-        if (followerCount >= 500) {
-            ListItem(
-                headlineContent = { Text("Professional Dashboard") },
-                leadingContent = { Icon(Icons.Default.TrendingUp, contentDescription = "Professional Dashboard", tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.clickable { onItemClick("professional_dashboard") }
-            )
-        }
         ListItem(
             headlineContent = { Text("Account Settings") },
             leadingContent = { Icon(Icons.Outlined.ManageAccounts, contentDescription = "Account Settings") },
@@ -3142,6 +3194,313 @@ fun TikTokDoubleTapHeartOverlay(
                 modifier = Modifier.size(120.dp)
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PromotedCampaignItem(
+    campaign: CreatorBoostCampaign,
+    viewModel: BlogViewModel,
+    onNavigateToMenuDest: (String) -> Unit
+) {
+    val context = LocalContext.current
+    var isLiked by remember(campaign.id) { mutableStateOf(false) }
+    var likeCount by remember(campaign.id) { mutableIntStateOf(42) }
+
+    LaunchedEffect(campaign.id) {
+        viewModel.recordCampaignImpression(campaign.id)
+    }
+
+    val openUrl = {
+        viewModel.recordCampaignClick(campaign.id)
+        val url = campaign.externalUrl
+        if (!url.isNullOrBlank()) {
+            try {
+                val uri = if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                    Uri.parse("https://$url")
+                } else {
+                    Uri.parse(url)
+                }
+                val intent = Intent(Intent.ACTION_VIEW, uri)
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(context, "Opening link: $url", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            android.widget.Toast.makeText(context, campaign.callToAction, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxSize(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0C0C0E)),
+        border = BorderStroke(1.dp, Color(0xFF222227))
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Media (Video or Image) - matches regular posts
+            if (!campaign.assetMediaUri.isNullOrEmpty()) {
+                if (campaign.assetType == "IMAGE") {
+                    AsyncImage(
+                        model = campaign.assetMediaUri,
+                        contentDescription = campaign.postTitle,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                } else {
+                    MediaView(
+                        mediaUri = campaign.assetMediaUri,
+                        modifier = Modifier.fillMaxSize(),
+                        autoPlayEnabled = true,
+                        isHomeFeed = true,
+                        onClick = { openUrl() }
+                    )
+                }
+            } else {
+                MediaView(
+                    mediaUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                    modifier = Modifier.fillMaxSize(),
+                    autoPlayEnabled = true,
+                    isHomeFeed = true,
+                    onClick = { openUrl() }
+                )
+            }
+
+            // High-contrast Vignette overlays (identical to regular posts)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp)
+                    .align(Alignment.TopCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.88f))))
+            )
+
+            // Top Bar Overlay: Clean (No specialized sponsored/affiliate/reels badges)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Background transparency for readability but no badges
+            }
+
+            // Right Floating Sidebar (Interactions - identical to regular posts)
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 12.dp, bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Like Button
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
+                        onClick = {
+                            isLiked = !isLiked
+                            likeCount += if (isLiked) 1 else -1
+                        },
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = "Like",
+                            tint = if (isLiked) Color(0xFFFE2C55) else Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "$likeCount",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Share Button
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(
+                        onClick = {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, campaign.postTitle)
+                                putExtra(Intent.EXTRA_TEXT, "Check out this post on Zooz: ${campaign.postTitle} ${campaign.externalUrl ?: ""}")
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Post"))
+                        },
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Share",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Share",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Sound / Vinyl Disc
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1E1E24))
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = "Music",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            // Bottom Left Post Information (Author, Caption, CTA - identical to regular posts)
+            val authorHandle = campaign.platformName?.lowercase()?.replace(" ", "") ?: "creator"
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth(0.74f)
+                    .padding(horizontal = 16.dp, vertical = 18.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { openUrl() }
+                ) {
+                    Text(
+                        text = "@$authorHandle",
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = "Verified",
+                        tint = Color(0xFF25F4EE),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .padding(start = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = campaign.postTitle,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // Call-To-Action Button embedded right below caption
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFE2C55),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { openUrl() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Filled.Stars,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = campaign.callToAction.ifBlank { "Learn More" },
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ActionGridItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    bgTint: Color,
+    iconTint: Color,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .background(bgTint, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = iconTint,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.9f),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -3336,30 +3695,7 @@ fun PostItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (post.isPromoted) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFFE2C55).copy(alpha = 0.25f),
-                            border = BorderStroke(1.dp, Color(0xFFFE2C55))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Stars,
-                                    contentDescription = "Promoted",
-                                    tint = Color(0xFFFE2C55),
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "PROMOTED",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.5.sp),
-                                    fontWeight = FontWeight.Black,
-                                    color = Color.White
-                                )
-                            }
-                        }
+                        // Organic mixing: No visible promoted badge as requested
                     }
                 }
 
@@ -3587,6 +3923,7 @@ fun PostItem(
                             modifier = Modifier.basicMarquee()
                         )
                     }
+
 
                     if (post.mediaUri.isNullOrEmpty()) {
                         val firstUrl = remember(post.content) { extractFirstUrl(post.content) }
@@ -3867,49 +4204,6 @@ fun PostItem(
         }
     }
 
-@Composable
-fun ActionGridItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    bgTint: Color,
-    iconTint: Color,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 6.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .background(bgTint, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = iconTint,
-                modifier = Modifier.size(26.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium,
-            color = Color.White.copy(alpha = 0.9f),
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
     // Long press grid actions ModalBottomSheet (TikTok-style 4-column grid)
     if (showLongPressActionsSheet) {
         ModalBottomSheet(
@@ -4139,8 +4433,8 @@ fun ActionGridItem(
                                         authorId = post.authorId,
                                         giftName = name,
                                         giftIcon = emoji,
-                                        amountUsd = cost * 0.05,
-                                        diamonds = cost,
+                                        coinsCost = cost,
+                                        diamondsCredit = cost,
                                         onSuccess = {
                                             animatedGiftEmoji = emoji
                                             showGiftSheet = false
@@ -6117,14 +6411,21 @@ object ActiveMusicManager {
     }
 }
 
+fun sanitizeMediaUri(uri: String): String {
+    if (uri.isBlank()) return "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+    val lower = uri.lowercase(java.util.Locale.ROOT)
+    if (lower.contains("mixkit") || lower.contains("videoblocks") || lower.contains("pexels") || lower.contains("pixabay") || lower.contains("getty") || lower.contains("shutterstock") || lower.contains("403")) {
+        return "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+    }
+    return uri
+}
+
 fun buildSafeExoPlayer(context: android.content.Context): androidx.media3.exoplayer.ExoPlayer {
     val defaultProperties = mapOf(
         "User-Agent" to "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
         "Accept" to "*/*",
         "Accept-Encoding" to "identity",
-        "Connection" to "keep-alive",
-        "Referer" to "https://r2.cloudflare.com/",
-        "Origin" to "https://r2.cloudflare.com/"
+        "Connection" to "keep-alive"
     )
     val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
         .setUserAgent("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36")
@@ -6137,8 +6438,8 @@ fun buildSafeExoPlayer(context: android.content.Context): androidx.media3.exopla
         override fun getRetryDelayMsFor(loadErrorInfo: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo): Long {
             val exception = loadErrorInfo.exception
             if (exception is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
-                android.util.Log.e("ExoPlayerSafe", "HTTP Error: ${exception.responseCode} for URL: ${loadErrorInfo.loadEventInfo.uri}")
-                if (exception.responseCode == 403) {
+                android.util.Log.w("ExoPlayerSafe", "HTTP response code ${exception.responseCode} for URL: ${loadErrorInfo.loadEventInfo.uri}")
+                if (exception.responseCode in 400..499) {
                     return androidx.media3.common.C.TIME_UNSET
                 }
             }
@@ -6168,7 +6469,7 @@ fun MusicPreviewPlayer(
     val exoPlayer = remember(previewUrl) {
         buildSafeExoPlayer(context).apply {
             repeatMode = androidx.media3.common.Player.REPEAT_MODE_ALL
-            val mediaItem = androidx.media3.common.MediaItem.fromUri(Uri.parse(previewUrl))
+            val mediaItem = androidx.media3.common.MediaItem.fromUri(Uri.parse(sanitizeMediaUri(previewUrl)))
             setMediaItem(mediaItem)
             prepare()
             
@@ -6327,7 +6628,7 @@ fun ModernVideoPlayer(
     val exoPlayer = remember(activeMediaUri) {
         buildSafeExoPlayer(context).apply {
             repeatMode = androidx.media3.common.Player.REPEAT_MODE_ALL
-            val mediaItem = androidx.media3.common.MediaItem.fromUri(Uri.parse(activeMediaUri))
+            val mediaItem = androidx.media3.common.MediaItem.fromUri(Uri.parse(sanitizeMediaUri(activeMediaUri)))
             setMediaItem(mediaItem)
             prepare()
             
@@ -6336,7 +6637,7 @@ fun ModernVideoPlayer(
                     android.util.Log.w("ModernVideoPlayer", "Playback error for $activeMediaUri: ${error.message}")
                     if (!hasPlaybackError) {
                         hasPlaybackError = true
-                        val fallbackUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+                        val fallbackUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
                         if (activeMediaUri != fallbackUrl) {
                             activeMediaUri = fallbackUrl
                         }

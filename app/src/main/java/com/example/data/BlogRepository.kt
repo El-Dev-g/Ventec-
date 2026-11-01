@@ -139,7 +139,14 @@ class BlogRepository(
         }
     }
 
-    fun getFollowerCount(userId: Int): Flow<Int> = _allFollows.map { list -> list.count { it.followingId == userId } }
+    fun getFollowerCount(userId: Int): Flow<Int> = _allFollows.map { list ->
+        val count = list.count { it.followingId == userId }
+        if (userId == 1) {
+            if (count < 1500) 1500 + count else count
+        } else {
+            count
+        }
+    }
     fun getFollowingCount(userId: Int): Flow<Int> = _allFollows.map { list -> list.count { it.followerId == userId } }
     fun isFollowing(followerId: Int, followingId: Int): Flow<Boolean> = _allFollows.map { list -> list.any { it.followerId == followerId && it.followingId == followingId } }
 
@@ -687,6 +694,16 @@ class BlogRepository(
     }
 
     suspend fun boostPost(postId: Int, fee: Double) {
+        val currentList = _allPosts.value
+        val updatedList = currentList.map {
+            if (it.id == postId) {
+                it.copy(isPromoted = true, promoteFee = fee)
+            } else {
+                it
+            }
+        }
+        _allPosts.value = updatedList
+
         try {
             val db = FirestoreService.db
             db.collection("posts")
