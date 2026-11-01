@@ -13,6 +13,7 @@ import com.example.data.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -1013,6 +1014,157 @@ class BlogViewModel(
             }
     }
 
+    // Watch History
+    private val _watchHistory = MutableStateFlow<List<Int>>(emptyList())
+    val watchHistory: StateFlow<List<Int>> = _watchHistory.asStateFlow()
+
+    fun recordWatchHistory(postId: Int) {
+        val current = _watchHistory.value.toMutableList()
+        current.remove(postId)
+        current.add(0, postId)
+        _watchHistory.value = current.take(100)
+    }
+
+    fun clearWatchHistory() {
+        _watchHistory.value = emptyList()
+    }
+
+    // Creator Wallet & Gifting
+    private val _walletBalance = MutableStateFlow(24.50)
+    val walletBalance: StateFlow<Double> = _walletBalance.asStateFlow()
+
+    private val _giftHistory = MutableStateFlow<List<GiftTransaction>>(
+        listOf(
+            GiftTransaction(senderId = 99, senderName = "Alex", recipientId = 1, giftName = "Crown", giftIcon = "👑", amountUsd = 2.50, diamonds = 50, timestamp = System.currentTimeMillis() - 7200000),
+            GiftTransaction(senderId = 98, senderName = "Sam", recipientId = 1, giftName = "Rose", giftIcon = "🌹", amountUsd = 0.05, diamonds = 1, timestamp = System.currentTimeMillis() - 14400000)
+        )
+    )
+    val giftHistory: StateFlow<List<GiftTransaction>> = _giftHistory.asStateFlow()
+
+    // User Coins / Credits Balance for Gifting
+    private val _userCoins = MutableStateFlow(25) // Initial starting balance: 25 Coins
+    val userCoins: StateFlow<Int> = _userCoins.asStateFlow()
+
+    fun buyCoins(coinsAmount: Int, costUsd: Double, onComplete: () -> Unit = {}) {
+        _userCoins.value += coinsAmount
+        onComplete()
+    }
+
+    fun sendGift(
+        authorId: Int,
+        giftName: String,
+        giftIcon: String,
+        amountUsd: Double,
+        diamonds: Int,
+        onSuccess: () -> Unit,
+        onInsufficientCredits: (needed: Int) -> Unit
+    ) {
+        if (_userCoins.value < diamonds) {
+            val needed = diamonds - _userCoins.value
+            onInsufficientCredits(needed)
+            return
+        }
+
+        // Deduct coins from user balance
+        _userCoins.value -= diamonds
+
+        val sender = currentUser.value
+        val tx = GiftTransaction(
+            senderId = sender?.id ?: 0,
+            senderName = sender?.username ?: "Supporter",
+            recipientId = authorId,
+            giftName = giftName,
+            giftIcon = giftIcon,
+            amountUsd = amountUsd,
+            diamonds = diamonds
+        )
+        _giftHistory.value = listOf(tx) + _giftHistory.value
+        val currentUserId = sender?.id ?: 0
+        if (authorId == currentUserId || authorId == 1) {
+            _walletBalance.value += amountUsd
+        }
+        onSuccess()
+    }
+
+    fun sendGift(authorId: Int, giftName: String, giftIcon: String, amountUsd: Double, diamonds: Int, onComplete: () -> Unit = {}) {
+        sendGift(
+            authorId = authorId,
+            giftName = giftName,
+            giftIcon = giftIcon,
+            amountUsd = amountUsd,
+            diamonds = diamonds,
+            onSuccess = onComplete,
+            onInsufficientCredits = {}
+        )
+    }
+
+    fun withdrawFunds(amount: Double, method: String, onComplete: () -> Unit, onError: (String) -> Unit) {
+        if (amount > _walletBalance.value) {
+            onError("Insufficient funds. Available: $${String.format("%.2f", _walletBalance.value)}")
+            return
+        }
+        _walletBalance.value -= amount
+        onComplete()
+    }
+
+    // Creator Ad Boost Campaigns
+    private val _boostCampaigns = MutableStateFlow<List<CreatorBoostCampaign>>(
+        listOf(
+            CreatorBoostCampaign(
+                postId = 1,
+                postTitle = "Summer Vibe Sunset Reel",
+                goal = "More Views",
+                budgetCoins = 200,
+                targetImpressions = 5000,
+                currentImpressions = 3420,
+                status = "ACTIVE"
+            )
+        )
+    )
+    val boostCampaigns: StateFlow<List<CreatorBoostCampaign>> = _boostCampaigns.asStateFlow()
+
+    fun createBoostCampaign(
+        postId: Int,
+        postTitle: String,
+        goal: String,
+        budgetCoins: Int,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (_userCoins.value < budgetCoins) {
+            onError("Insufficient Coins balance (${_userCoins.value} 🪙 available). Top up coins to launch campaign.")
+            return
+        }
+        _userCoins.value -= budgetCoins
+        val targetImpressions = budgetCoins * 25
+        val campaign = CreatorBoostCampaign(
+            postId = postId,
+            postTitle = postTitle,
+            goal = goal,
+            budgetCoins = budgetCoins,
+            targetImpressions = targetImpressions,
+            currentImpressions = (targetImpressions * 0.12).toInt(),
+            status = "ACTIVE"
+        )
+        _boostCampaigns.value = listOf(campaign) + _boostCampaigns.value
+        onSuccess()
+    }
+
+    // Interactive Polls
+    private val _pollVotes = MutableStateFlow<Map<Int, PollVote>>(emptyMap())
+    val pollVotes: StateFlow<Map<Int, PollVote>> = _pollVotes.asStateFlow()
+
+    fun votePoll(postId: Int, option: Int) {
+        val current = _pollVotes.value[postId] ?: PollVote(postId = postId, votesA = 12, votesB = 8)
+        if (current.userVotedOption != null) return
+        val updated = if (option == 0) {
+            current.copy(votesA = current.votesA + 1, userVotedOption = 0)
+        } else {
+            current.copy(votesB = current.votesB + 1, userVotedOption = 1)
+        }
+        _pollVotes.value = _pollVotes.value + (postId to updated)
+    }
+
     class Factory(
         private val repository: BlogRepository,
         private val sessionManager: SessionManager
@@ -1026,6 +1178,37 @@ class BlogViewModel(
         }
     }
 }
+
+data class GiftTransaction(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val senderId: Int,
+    val senderName: String,
+    val recipientId: Int,
+    val giftName: String,
+    val giftIcon: String,
+    val amountUsd: Double,
+    val diamonds: Int,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class CreatorBoostCampaign(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val postId: Int,
+    val postTitle: String,
+    val goal: String,
+    val budgetCoins: Int,
+    val targetImpressions: Int,
+    val currentImpressions: Int,
+    val status: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class PollVote(
+    val postId: Int,
+    val votesA: Int = 12,
+    val votesB: Int = 8,
+    val userVotedOption: Int? = null
+)
 
 data class AlertNotification(
     val id: String = java.util.UUID.randomUUID().toString(),

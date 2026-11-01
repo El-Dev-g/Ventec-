@@ -403,9 +403,95 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
             com.example.ui.HelpScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        composable("create_story") {
+        composable("creator_eligibility") {
+            com.example.ui.CreatorToolsScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") }
+            )
+        }
+
+        composable("professional_dashboard") {
+            com.example.ui.CreatorToolsScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") }
+            )
+        }
+
+        composable("creator_wallet") {
+            com.example.ui.CreatorWalletScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("watch_history") {
+            com.example.ui.WatchHistoryScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") }
+            )
+        }
+
+        composable(
+            route = "sound_detail?trackName={trackName}&trackArtist={trackArtist}&previewUrl={previewUrl}&imageUrl={imageUrl}",
+            arguments = listOf(
+                navArgument("trackName") { type = NavType.StringType; defaultValue = "Original Sound" },
+                navArgument("trackArtist") { type = NavType.StringType; defaultValue = "Zooz Creator" },
+                navArgument("previewUrl") { type = NavType.StringType; defaultValue = "" },
+                navArgument("imageUrl") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val trackName = backStackEntry.arguments?.getString("trackName") ?: "Original Sound"
+            val trackArtist = backStackEntry.arguments?.getString("trackArtist") ?: "Zooz Creator"
+            val previewUrl = backStackEntry.arguments?.getString("previewUrl")?.takeIf { it.isNotBlank() }
+            val imageUrl = backStackEntry.arguments?.getString("imageUrl")?.takeIf { it.isNotBlank() }
+            com.example.ui.SoundDetailScreen(
+                trackName = trackName,
+                trackArtist = trackArtist,
+                previewUrl = previewUrl,
+                imageUrl = imageUrl,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") },
+                onUseThisSound = { sTrackName, sTrackArtist, sPreviewUrl, sImageUrl ->
+                    val encTrack = java.net.URLEncoder.encode(sTrackName, "UTF-8")
+                    val encArtist = java.net.URLEncoder.encode(sTrackArtist, "UTF-8")
+                    val encPreview = java.net.URLEncoder.encode(sPreviewUrl ?: "", "UTF-8")
+                    val encImg = java.net.URLEncoder.encode(sImageUrl ?: "", "UTF-8")
+                    navController.navigate("create_story?trackName=$encTrack&trackArtist=$encArtist&previewUrl=$encPreview&imageUrl=$encImg")
+                }
+            )
+        }
+
+        composable(
+            route = "create_story?trackName={trackName}&trackArtist={trackArtist}&previewUrl={previewUrl}&imageUrl={imageUrl}",
+            arguments = listOf(
+                navArgument("trackName") { type = NavType.StringType; defaultValue = "" },
+                navArgument("trackArtist") { type = NavType.StringType; defaultValue = "" },
+                navArgument("previewUrl") { type = NavType.StringType; defaultValue = "" },
+                navArgument("imageUrl") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val trackName = backStackEntry.arguments?.getString("trackName")?.takeIf { it.isNotBlank() }
+            val trackArtist = backStackEntry.arguments?.getString("trackArtist")?.takeIf { it.isNotBlank() }
+            val previewUrl = backStackEntry.arguments?.getString("previewUrl")?.takeIf { it.isNotBlank() }
+            val imageUrl = backStackEntry.arguments?.getString("imageUrl")?.takeIf { it.isNotBlank() }
+
+            val initialTrack = if (!trackName.isNullOrEmpty()) {
+                com.example.ui.SpotifyTrack(
+                    id = "sound_" + System.currentTimeMillis(),
+                    name = trackName,
+                    artist = trackArtist ?: "Creator",
+                    previewUrl = previewUrl,
+                    albumImageUrl = imageUrl
+                )
+            } else null
+
             com.example.ui.CreateStoryScreen(
                 viewModel = viewModel,
+                initialSpotifyTrack = initialTrack,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -421,6 +507,14 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+
+        composable("creator_tools") {
+            com.example.ui.CreatorToolsScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPostDetail = { postId -> navController.navigate("post_detail/$postId") }
+            )
+        }
         
         // Standalone Auth Module Routes
         composable("standalone_auth") {
@@ -434,15 +528,20 @@ fun BlogApp(factory: BlogViewModel.Factory, viewModel: BlogViewModel = androidx.
             )
         }
         composable(
-            route = "post_detail/{postId}",
-            arguments = listOf(navArgument("postId") { type = NavType.IntType })
+            route = "post_detail/{postId}?openComments={openComments}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.IntType },
+                navArgument("openComments") { type = NavType.BoolType; defaultValue = false }
+            )
         ) { backStackEntry ->
             val postId = backStackEntry.arguments?.getInt("postId") ?: return@composable
+            val openComments = backStackEntry.arguments?.getBoolean("openComments") ?: false
             com.example.ui.PostDetailScreen(
                 postId = postId,
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToUserProfile = { id -> navController.navigate("user_profile/$id") }
+                onNavigateToUserProfile = { id -> navController.navigate("user_profile/$id") },
+                autoOpenComments = openComments
             )
         }
     }

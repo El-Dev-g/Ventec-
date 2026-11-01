@@ -1633,7 +1633,7 @@ fun HomeTopOverlayHeader(
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onSearchClick, modifier = Modifier.size(36.dp)) {
@@ -1847,6 +1847,7 @@ fun HomeScreen(
 
     var showMenuSheet by remember { mutableStateOf(false) }
     var showChatSheet by remember { mutableStateOf(false) }
+    var selectedPostForComments by remember { mutableStateOf<Post?>(null) }
     var currentTab by remember { mutableStateOf("home") }
     var feedSubTab by remember { mutableStateOf("foryou") } // "foryou" vs "following"
     var showStoriesTray by remember { mutableStateOf(false) }
@@ -2802,6 +2803,14 @@ fun HomeScreen(
             else -> {
                 Box(modifier = Modifier.fillMaxSize()) {
                     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { visiblePosts.size })
+
+                    // Automatically log watch history
+                    LaunchedEffect(pagerState.currentPage, visiblePosts) {
+                        val currentPost = visiblePosts.getOrNull(pagerState.currentPage)
+                        if (currentPost != null) {
+                            viewModel.recordWatchHistory(currentPost.id)
+                        }
+                    }
                     
                     androidx.compose.foundation.pager.VerticalPager(
                         state = pagerState,
@@ -2817,6 +2826,14 @@ fun HomeScreen(
                                     onClick = { onNavigateToPostDetail(post.id) },
                                     onAuthorClick = onNavigateToUserProfile,
                                     isHomeFeed = true,
+                                    onCommentsClick = { selectedPostForComments = post },
+                                    onSoundClick = { track, artist, preview, img ->
+                                        val encodedTrack = java.net.URLEncoder.encode(track, "UTF-8")
+                                        val encodedArtist = java.net.URLEncoder.encode(artist, "UTF-8")
+                                        val encodedPreview = java.net.URLEncoder.encode(preview ?: "", "UTF-8")
+                                        val encodedImg = java.net.URLEncoder.encode(img ?: "", "UTF-8")
+                                        onNavigateToMenuDest("sound_detail?trackName=$encodedTrack&trackArtist=$encodedArtist&previewUrl=$encodedPreview&imageUrl=$encodedImg")
+                                    },
                                     onTagClick = { tag ->
                                         viewModel.setFilter(tag)
                                         currentTab = "search"
@@ -2930,6 +2947,14 @@ fun HomeScreen(
             )
         }
     }
+
+    if (selectedPostForComments != null) {
+        VideoCommentsBottomSheet(
+            post = selectedPostForComments!!,
+            viewModel = viewModel,
+            onDismissRequest = { selectedPostForComments = null }
+        )
+    }
 }
 }
 
@@ -3000,10 +3025,27 @@ fun MenuContent(user: com.example.data.User?, followerCount: Int, onLogout: () -
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         }
+        ListItem(
+            headlineContent = { Text("Creator Tools & Eligibility") },
+            supportingContent = { Text("Analytics, Monetization & Ad Boosts") },
+            leadingContent = { Icon(Icons.Default.TrendingUp, contentDescription = "Creator Tools", tint = Color(0xFFFE2C55)) },
+            modifier = Modifier.clickable { onItemClick("creator_tools") }
+        )
+        ListItem(
+            headlineContent = { Text("Creator Wallet & Earnings") },
+            supportingContent = { Text("Tips, Diamonds & Cash Out") },
+            leadingContent = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Creator Wallet", tint = Color(0xFF00C853)) },
+            modifier = Modifier.clickable { onItemClick("creator_wallet") }
+        )
+        ListItem(
+            headlineContent = { Text("Watch History") },
+            leadingContent = { Icon(Icons.Default.History, contentDescription = "Watch History") },
+            modifier = Modifier.clickable { onItemClick("watch_history") }
+        )
         if (followerCount >= 500) {
             ListItem(
                 headlineContent = { Text("Professional Dashboard") },
-                leadingContent = { Icon(Icons.Filled.TrendingUp, contentDescription = "Professional Dashboard", tint = MaterialTheme.colorScheme.primary) },
+                leadingContent = { Icon(Icons.Default.TrendingUp, contentDescription = "Professional Dashboard", tint = MaterialTheme.colorScheme.primary) },
                 modifier = Modifier.clickable { onItemClick("professional_dashboard") }
             )
         }
@@ -3112,6 +3154,7 @@ fun PostItem(
     onAuthorClick: (Int) -> Unit = {},
     isHomeFeed: Boolean = false,
     onCommentsClick: (() -> Unit)? = null,
+    onSoundClick: ((String, String, String?, String?) -> Unit)? = null,
     onTagClick: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -3147,6 +3190,24 @@ fun PostItem(
         ),
         label = "music_rotation_anim"
     )
+
+    var isClearDisplayMode by remember { mutableStateOf(false) }
+    var showGiftSheet by remember { mutableStateOf(false) }
+    var showCoinRechargeDialog by remember { mutableStateOf(false) }
+    var showWatermarkDownloadDialog by remember { mutableStateOf(false) }
+    var animatedGiftEmoji by remember { mutableStateOf<String?>(null) }
+    val userCoins by viewModel.userCoins.collectAsStateWithLifecycle()
+
+    LaunchedEffect(animatedGiftEmoji) {
+        if (animatedGiftEmoji != null) {
+            kotlinx.coroutines.delay(2200)
+            animatedGiftEmoji = null
+        }
+    }
+
+    val pollVotesState = remember { viewModel.pollVotes }
+    val allPollVotes by pollVotesState.collectAsStateWithLifecycle()
+    val currentPollVote = allPollVotes[post.id]
 
     LaunchedEffect(post.id) {
         viewModel.recordPostImpression(post.id)
@@ -3232,370 +3293,568 @@ fun PostItem(
                     )
             )
 
-            // Top-Bar controls Overlay (sponsored indicators and actions)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (post.isPromoted) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFFE2C55).copy(alpha = 0.25f),
-                        border = BorderStroke(1.dp, Color(0xFFFE2C55))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Stars,
-                                contentDescription = "Promoted",
-                                tint = Color(0xFFFE2C55),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "PROMOTED",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.5.sp),
-                                fontWeight = FontWeight.Black,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-            }
-
-            // LEFT SIDE CONTENT SUMMARY PANEL
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(0.74f)
-                    .align(Alignment.BottomStart)
-                    .padding(horizontal = 16.dp, vertical = 18.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onAuthorClick(post.authorId) }
+            // Clear Display Mode Exit Banner
+            if (isClearDisplayMode) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 28.dp)
+                        .clickable { isClearDisplayMode = false },
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.Black.copy(alpha = 0.65f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
                 ) {
-                    Text(
-                        text = "@${post.authorName}",
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    if (authorFollowers >= 10000) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
-                            imageVector = Icons.Filled.CheckCircle,
-                            contentDescription = "Verified Creator",
-                            tint = Color(0xFF25F4EE),
-                            modifier = Modifier
-                                .size(16.dp)
-                                .padding(start = 4.dp)
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = "Exit Clear Display Mode",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Clear Display Mode • Tap to Exit",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                if (post.title.isNotBlank()) {
-                    Text(
-                        text = post.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(3.dp))
-                }
-                Text(
-                    text = post.content,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.85f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                if (post.categories.isNotBlank() || post.tags.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (post.categories.isNotBlank()) {
-                            post.categories.split(",").take(2).forEach { cat ->
-                                Box(
-                                    modifier = Modifier
-                                        .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            viewModel.recordPostClick(post.id)
-                                            if (onTagClick != null) onTagClick(cat.trim()) else onClick()
-                                        }
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text(cat.trim().uppercase(), color = Color(0xFF25F4EE), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                                }
-                            }
-                        }
-                        if (post.tags.isNotBlank()) {
-                            post.tags.split(",").take(2).forEach { tag ->
-                                Box(
-                                    modifier = Modifier
-                                        .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            viewModel.recordPostClick(post.id)
-                                            if (onTagClick != null) onTagClick(tag.trim()) else onClick()
-                                        }
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text("#${tag.trim()}", color = Color(0xFFFE2C55), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, fontSize = 9.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .padding(top = 10.dp)
-                        .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .widthIn(max = 200.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = Color(0xFF25F4EE),
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (!post.spotifyTrackName.isNullOrEmpty()) "${post.spotifyTrackName} - ${post.spotifyTrackArtist}" else "original sound - @${post.authorName}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                        color = Color.White.copy(alpha = 0.9f),
-                        maxLines = 1,
-                        modifier = Modifier.basicMarquee()
-                    )
-                }
-
-                if (post.mediaUri.isNullOrEmpty()) {
-                    val firstUrl = remember(post.content) { extractFirstUrl(post.content) }
-                    if (firstUrl != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        val previewData = remember(firstUrl) { getUrlPreview(firstUrl) }
-                        Box(modifier = Modifier.fillMaxWidth().scale(0.88f).align(Alignment.Start)) {
-                            LinkPreviewCard(previewData = previewData)
-                        }
-                    }
-                }
             }
 
-            // RIGHT FLOATING SIDEBAR PANEL
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 12.dp, bottom = 18.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Box(
+            if (!isClearDisplayMode) {
+                // Top-Bar controls Overlay (sponsored indicators and actions)
+                Row(
                     modifier = Modifier
-                        .size(50.dp)
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (post.isPromoted) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFE2C55).copy(alpha = 0.25f),
+                            border = BorderStroke(1.dp, Color(0xFFFE2C55))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Stars,
+                                    contentDescription = "Promoted",
+                                    tint = Color(0xFFFE2C55),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "PROMOTED",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.5.sp),
+                                    fontWeight = FontWeight.Black,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // LEFT SIDE CONTENT SUMMARY PANEL
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(0.74f)
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 16.dp, vertical = 18.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onAuthorClick(post.authorId) }
+                    ) {
+                        Text(
+                            text = "@${post.authorName}",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        if (authorFollowers >= 10000) {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = "Verified Creator",
+                                tint = Color(0xFF25F4EE),
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .padding(start = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    if (post.title.isNotBlank()) {
+                        Text(
+                            text = post.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                    }
+                    Text(
+                        text = post.content,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.85f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (post.categories.isNotBlank() || post.tags.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (post.categories.isNotBlank()) {
+                                post.categories.split(",").take(2).forEach { cat ->
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                viewModel.recordPostClick(post.id)
+                                                if (onTagClick != null) onTagClick(cat.trim()) else onClick()
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(cat.trim().uppercase(), color = Color(0xFF25F4EE), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                    }
+                                }
+                            }
+                            if (post.tags.isNotBlank()) {
+                                post.tags.split(",").take(2).forEach { tag ->
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                viewModel.recordPostClick(post.id)
+                                                if (onTagClick != null) onTagClick(tag.trim()) else onClick()
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("#${tag.trim()}", color = Color(0xFFFE2C55), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, fontSize = 9.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Interactive Video Poll Sticker
+                    val hasPoll = remember(post.title, post.tags) {
+                        post.tags.contains("poll", ignoreCase = true) || post.tags.contains("vote", ignoreCase = true) || (post.title.contains("?") && post.title.length > 5)
+                    }
+                    if (hasPoll) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.7f)),
+                            border = BorderStroke(1.dp, Color(0xFF25F4EE).copy(alpha = 0.6f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.HowToVote,
+                                        contentDescription = null,
+                                        tint = Color(0xFF25F4EE),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "COMMUNITY POLL",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                        color = Color(0xFF25F4EE),
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                val option1Count = currentPollVote?.votesA ?: 14
+                                val option2Count = currentPollVote?.votesB ?: 7
+                                val totalVotes = (option1Count + option2Count).coerceAtLeast(1)
+                                val pct1 = (option1Count * 100) / totalVotes
+                                val pct2 = 100 - pct1
+                                val hasVoted = currentPollVote?.userVotedOption != null
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Option 1
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (currentPollVote?.userVotedOption == 0) Color(0xFF25F4EE).copy(alpha = 0.28f) else Color.White.copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, if (currentPollVote?.userVotedOption == 0) Color(0xFF25F4EE) else Color.White.copy(alpha = 0.2f)),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { viewModel.votePoll(post.id, 0) }
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = "Yes! 🔥",
+                                                color = Color.White,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            if (hasVoted) {
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "$pct1%",
+                                                    color = Color(0xFF25F4EE),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.ExtraBold
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Option 2
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (currentPollVote?.userVotedOption == 1) Color(0xFFFE2C55).copy(alpha = 0.28f) else Color.White.copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, if (currentPollVote?.userVotedOption == 1) Color(0xFFFE2C55) else Color.White.copy(alpha = 0.2f)),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { viewModel.votePoll(post.id, 1) }
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = "No way 🤔",
+                                                color = Color.White,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            if (hasVoted) {
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "$pct2%",
+                                                    color = Color(0xFFFE2C55),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.ExtraBold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Audio Marquee Ticker with Tap-to-Sound-Details
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                            .clickable {
+                                val soundTitle = if (!post.spotifyTrackName.isNullOrEmpty()) post.spotifyTrackName else "Original Sound"
+                                val soundArtist = if (!post.spotifyTrackArtist.isNullOrEmpty()) post.spotifyTrackArtist else "@${post.authorName}"
+                                onSoundClick?.invoke(soundTitle, soundArtist, post.spotifyTrackImageUrl, post.spotifyTrackPreviewUrl)
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .widthIn(max = 200.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = "Sound Details",
+                            tint = Color(0xFF25F4EE),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (!post.spotifyTrackName.isNullOrEmpty()) "${post.spotifyTrackName} - ${post.spotifyTrackArtist}" else "original sound - @${post.authorName}",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                            color = Color.White.copy(alpha = 0.9f),
+                            maxLines = 1,
+                            modifier = Modifier.basicMarquee()
+                        )
+                    }
+
+                    if (post.mediaUri.isNullOrEmpty()) {
+                        val firstUrl = remember(post.content) { extractFirstUrl(post.content) }
+                        if (firstUrl != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            val previewData = remember(firstUrl) { getUrlPreview(firstUrl) }
+                            Box(modifier = Modifier.fillMaxWidth().scale(0.88f).align(Alignment.Start)) {
+                                LinkPreviewCard(previewData = previewData)
+                            }
+                        }
+                    }
+                }
+
+                // RIGHT FLOATING SIDEBAR PANEL
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 12.dp, bottom = 18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
-                            .align(Alignment.TopCenter)
-                            .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
-                            .border(BorderStroke(1.5.dp, Color.White), CircleShape)
-                            .clickable { onAuthorClick(post.authorId) },
-                        contentAlignment = Alignment.Center
+                            .size(50.dp)
                     ) {
-                        val initial = if (post.authorName.isNotBlank()) post.authorName.take(2).uppercase() else "?"
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .align(Alignment.TopCenter)
+                                .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
+                                .border(BorderStroke(1.5.dp, Color.White), CircleShape)
+                                .clickable { onAuthorClick(post.authorId) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val initial = if (post.authorName.isNotBlank()) post.authorName.take(2).uppercase() else "?"
+                            Text(
+                                text = initial,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                        if (currentUser?.id != post.authorId) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .offset(y = 2.dp)
+                                    .size(18.dp)
+                                    .background(Color(0xFFFE2C55), CircleShape)
+                                    .border(BorderStroke(1.dp, Color.White), CircleShape)
+                                    .clickable {
+                                        viewModel.toggleFollow(post.authorId, isFollowing)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isFollowing) Icons.Default.Check else Icons.Default.Add,
+                                    contentDescription = "Follow Creator",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(
+                            onClick = { viewModel.toggleLike(post.id, isLiked) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "Like",
+                                tint = if (isLiked) Color(0xFFFE2C55) else Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                         Text(
-                            text = initial,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            style = MaterialTheme.typography.titleSmall,
+                            text = if (likeCount > 0) "$likeCount" else "0",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
-                    if (currentUser?.id != post.authorId) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .offset(y = 2.dp)
-                                .size(18.dp)
-                                .background(Color(0xFFFE2C55), CircleShape)
-                                .border(BorderStroke(1.dp, Color.White), CircleShape)
-                                .clickable {
-                                    viewModel.toggleFollow(post.authorId, isFollowing)
-                                },
-                            contentAlignment = Alignment.Center
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(
+                            onClick = {
+                                viewModel.recordPostClick(post.id)
+                                if (onCommentsClick != null) onCommentsClick() else onClick()
+                            },
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
-                                imageVector = if (isFollowing) Icons.Default.Check else Icons.Default.Add,
-                                contentDescription = "Follow Creator",
+                                imageVector = Icons.Outlined.ChatBubbleOutline,
+                                contentDescription = "Comments",
                                 tint = Color.White,
-                                modifier = Modifier.size(11.dp)
+                                modifier = Modifier.size(31.dp)
+                            )
+                        }
+                        Text(
+                            text = "$commentCount",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(
+                            onClick = { viewModel.toggleBookmark(post.id, isBookmarked) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isBookmarked) Icons.Filled.Bookmarks else Icons.Outlined.Bookmarks,
+                                contentDescription = "Bookmark",
+                                tint = if (isBookmarked) Color(0xFFFFC107) else Color.White,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                        Text(
+                            text = if (isBookmarked) "Saved" else "Save",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(
+                            onClick = {
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, post.title)
+                                    putExtra(Intent.EXTRA_TEXT, "${post.title}\n\n${post.content}\n\nRead more details inside Zooz!")
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Share Post"))
+                            },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = "Share",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Text(
+                            text = "Reply",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Tipping & Creator Gift Button
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(
+                            onClick = { showGiftSheet = true },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CardGiftcard,
+                                contentDescription = "Send Gift",
+                                tint = Color(0xFFFF4081),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Text(
+                            text = "Gift",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+
+
+                    // Spinning Vinyl Disc with Tap-to-Sound-Details
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .size(38.dp)
+                            .rotate(rotationSpeed)
+                            .background(Color(0xFF0C0C0E), CircleShape)
+                            .border(BorderStroke(1.5.dp, Color(0xFF25F4EE)), CircleShape)
+                            .border(BorderStroke(3.5.dp, Color(0xFF16161A)), CircleShape)
+                            .clickable {
+                                val soundTitle = if (!post.spotifyTrackName.isNullOrEmpty()) post.spotifyTrackName else "Original Sound"
+                                val soundArtist = if (!post.spotifyTrackArtist.isNullOrEmpty()) post.spotifyTrackArtist else "@${post.authorName}"
+                                onSoundClick?.invoke(soundTitle, soundArtist, post.spotifyTrackImageUrl, post.spotifyTrackPreviewUrl)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!post.spotifyTrackImageUrl.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = post.spotifyTrackImageUrl,
+                                contentDescription = "Music Album",
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(15.dp)
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(Color(0xFFFE2C55), Color(0xFF25F4EE))
+                                        ),
+                                        CircleShape
+                                    )
                             )
                         }
                     }
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconButton(
-                        onClick = { viewModel.toggleLike(post.id, isLiked) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                            contentDescription = "Like",
-                            tint = if (isLiked) Color(0xFFFE2C55) else Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                    Text(
-                        text = if (likeCount > 0) "$likeCount" else "0",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconButton(
-                        onClick = {
-                            viewModel.recordPostClick(post.id)
-                            if (onCommentsClick != null) onCommentsClick() else onClick()
-                        },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ChatBubbleOutline,
-                            contentDescription = "Comments",
-                            tint = Color.White,
-                            modifier = Modifier.size(31.dp)
-                        )
-                    }
-                    Text(
-                        text = "$commentCount",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconButton(
-                        onClick = { viewModel.toggleBookmark(post.id, isBookmarked) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isBookmarked) Icons.Filled.Bookmarks else Icons.Outlined.Bookmarks,
-                            contentDescription = "Bookmark",
-                            tint = if (isBookmarked) Color(0xFFFFC107) else Color.White,
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
-                    Text(
-                        text = if (isBookmarked) "Saved" else "Save",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconButton(
-                        onClick = {
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, post.title)
-                                putExtra(Intent.EXTRA_TEXT, "${post.title}\n\n${post.content}\n\nRead more details inside Zooz!")
-                            }
-                            context.startActivity(Intent.createChooser(shareIntent, "Share Post"))
-                        },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Share,
-                            contentDescription = "Share",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                    Text(
-                        text = "Reply",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
+                // Bottom sleek progress indicator line
                 Box(
                     modifier = Modifier
-                        .padding(top = 4.dp)
-                        .size(38.dp)
-                        .rotate(rotationSpeed)
-                        .background(Color(0xFF0C0C0E), CircleShape)
-                        .border(BorderStroke(1.5.dp, Color(0xFF25F4EE)), CircleShape)
-                        .border(BorderStroke(3.5.dp, Color(0xFF16161A)), CircleShape),
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(Color.White.copy(alpha = 0.2f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.45f)
+                            .fillMaxHeight()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(Color(0xFFFE2C55), Color(0xFF25F4EE))
+                                )
+                            )
+                    )
+                }
+            }
+
+            // Flying Gift Animation Overlay
+            if (animatedGiftEmoji != null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (!post.spotifyTrackImageUrl.isNullOrEmpty()) {
-                        AsyncImage(
-                            model = post.spotifyTrackImageUrl,
-                            contentDescription = "Music Album",
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.animateContentSize()
+                    ) {
+                        Text(
+                            text = animatedGiftEmoji ?: "",
+                            fontSize = 72.sp
                         )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(15.dp)
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(Color(0xFFFE2C55), Color(0xFF25F4EE))
-                                    ),
-                                    CircleShape
-                                )
-                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color.Black.copy(alpha = 0.85f),
+                            border = BorderStroke(1.dp, Color(0xFFFF4081))
+                        ) {
+                            Text(
+                                text = "Gift Sent! +Diamonds 💎",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
                     }
                 }
-            }
-
-            // TikTok double tap heart explosion overlay
-            if (showDoubleTapHeart) {
-                TikTokDoubleTapHeartOverlay(
-                    offset = doubleTapOffset,
-                    rotation = doubleTapRotation,
-                    onAnimationEnd = { showDoubleTapHeart = false }
-                )
-            }
-
-            // Bottom sleek progress indicator line
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(Color.White.copy(alpha = 0.2f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.45f)
-                        .fillMaxHeight()
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(Color(0xFFFE2C55), Color(0xFF25F4EE))
-                            )
-                        )
-                )
             }
 
             // Spotify Track preview player if available (runs on ExoPlayer, unmuted by default)
@@ -3608,7 +3867,50 @@ fun PostItem(
         }
     }
 
-    // Long press vertical actions ModalBottomSheet
+@Composable
+fun ActionGridItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    bgTint: Color,
+    iconTint: Color,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .background(bgTint, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = iconTint,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.9f),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+    // Long press grid actions ModalBottomSheet (TikTok-style 4-column grid)
     if (showLongPressActionsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showLongPressActionsSheet = false },
@@ -3622,112 +3924,330 @@ fun PostItem(
                     .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = 12.dp)
+                        .width(36.dp)
+                        .height(4.dp)
+                        .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(2.dp))
+                )
+
                 Text(
                     text = "Post Actions",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(bottom = 24.dp)
+                    color = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(bottom = 20.dp)
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.Top
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 280.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Vertical Button: About
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
+                    // Send Gift
+                    item {
+                        ActionGridItem(
+                            icon = Icons.Default.CardGiftcard,
+                            label = "Send Gift",
+                            bgTint = Color(0xFFFF4081).copy(alpha = 0.18f),
+                            iconTint = Color(0xFFFF4081),
+                            onClick = {
+                                showLongPressActionsSheet = false
+                                showGiftSheet = true
+                            }
+                        )
+                    }
+
+                    // Download
+                    item {
+                        ActionGridItem(
+                            icon = Icons.Default.Download,
+                            label = "Save Video",
+                            bgTint = Color(0xFFFE2C55).copy(alpha = 0.18f),
+                            iconTint = Color(0xFFFE2C55),
+                            onClick = {
+                                showLongPressActionsSheet = false
+                                showWatermarkDownloadDialog = true
+                            }
+                        )
+                    }
+
+                    // Use Sound
+                    item {
+                        ActionGridItem(
+                            icon = Icons.Default.MusicNote,
+                            label = "Use Sound",
+                            bgTint = Color(0xFF25F4EE).copy(alpha = 0.18f),
+                            iconTint = Color(0xFF25F4EE),
+                            onClick = {
+                                showLongPressActionsSheet = false
+                                val soundTitle = if (!post.spotifyTrackName.isNullOrEmpty()) post.spotifyTrackName else "Original Sound"
+                                val soundArtist = if (!post.spotifyTrackArtist.isNullOrEmpty()) post.spotifyTrackArtist else "@${post.authorName}"
+                                onSoundClick?.invoke(soundTitle, soundArtist, post.spotifyTrackImageUrl, post.spotifyTrackPreviewUrl)
+                            }
+                        )
+                    }
+
+                    // About
+                    item {
+                        ActionGridItem(
+                            icon = Icons.Filled.Star,
+                            label = "About",
+                            bgTint = Color.White.copy(alpha = 0.10f),
+                            iconTint = Color(0xFF25F4EE),
+                            onClick = {
                                 showLongPressActionsSheet = false
                                 showInfoDialog = true
                             }
-                            .padding(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(54.dp)
-                                .background(Color.White.copy(alpha = 0.08f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Filled.Star, contentDescription = "About", tint = Color(0xFF25F4EE), modifier = Modifier.size(26.dp))
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("About", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                        )
                     }
 
-                    // Vertical Button: Hide
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
+                    // Not Interested / Hide
+                    item {
+                        ActionGridItem(
+                            icon = Icons.Filled.Close,
+                            label = "Not Interested",
+                            bgTint = Color.White.copy(alpha = 0.10f),
+                            iconTint = Color.White,
+                            onClick = {
                                 showLongPressActionsSheet = false
                                 viewModel.hidePost(post.id)
                                 android.widget.Toast.makeText(context, "Post hidden", android.widget.Toast.LENGTH_SHORT).show()
                             }
-                            .padding(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(54.dp)
-                                .background(Color.White.copy(alpha = 0.08f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = "Hide", tint = Color.White, modifier = Modifier.size(26.dp))
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Hide", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                        )
                     }
 
-                    // Vertical Button: Report
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
+                    // Report
+                    item {
+                        ActionGridItem(
+                            icon = Icons.Filled.Report,
+                            label = "Report",
+                            bgTint = Color(0xFFFE2C55).copy(alpha = 0.18f),
+                            iconTint = Color(0xFFFE2C55),
+                            onClick = {
                                 showLongPressActionsSheet = false
                                 viewModel.reportPost(post.id)
                                 android.widget.Toast.makeText(context, "Post reported", android.widget.Toast.LENGTH_SHORT).show()
                             }
-                            .padding(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(54.dp)
-                                .background(Color.White.copy(alpha = 0.08f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Filled.Report, contentDescription = "Report", tint = Color(0xFFFE2C55), modifier = Modifier.size(26.dp))
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Report", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                        )
                     }
 
-                    // Vertical Button: Delete (Owner only)
+                    // Delete (Owner only)
                     if (isOwner) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
+                        item {
+                            ActionGridItem(
+                                icon = Icons.Filled.Delete,
+                                label = "Delete",
+                                bgTint = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                                iconTint = MaterialTheme.colorScheme.error,
+                                onClick = {
                                     showLongPressActionsSheet = false
                                     showDeleteConfirmDialog = true
                                 }
-                                .padding(8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Gift & Tipping ModalBottomSheet
+    if (showGiftSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showGiftSheet = false },
+            containerColor = Color(0xFF16161E),
+            contentColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .navigationBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Send Gift to @${post.authorName}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    IconButton(onClick = { showGiftSheet = false }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.7f))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // User Coin Credits Balance Header
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFFFD700).copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🪙 Coins Balance:", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("$userCoins", color = Color(0xFFFFD700), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                        }
+                        Button(
+                            onClick = { showCoinRechargeDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55)),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f), CircleShape),
-                                contentAlignment = Alignment.Center
+                            Text("+ Get Coins", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+
+                val gifts = listOf(
+                    Triple("Rose", "🌹", 1),
+                    Triple("Coffee", "☕", 5),
+                    Triple("Fire", "🔥", 10),
+                    Triple("Crown", "👑", 50),
+                    Triple("Diamond", "💎", 100)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    gifts.forEach { (name, emoji, cost) ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White.copy(alpha = 0.06f))
+                                .clickable {
+                                    viewModel.sendGift(
+                                        authorId = post.authorId,
+                                        giftName = name,
+                                        giftIcon = emoji,
+                                        amountUsd = cost * 0.05,
+                                        diamonds = cost,
+                                        onSuccess = {
+                                            animatedGiftEmoji = emoji
+                                            showGiftSheet = false
+                                            android.widget.Toast.makeText(context, "Sent $emoji $name to @${post.authorName}!", android.widget.Toast.LENGTH_SHORT).show()
+                                        },
+                                        onInsufficientCredits = { needed ->
+                                            showCoinRechargeDialog = true
+                                            android.widget.Toast.makeText(context, "Need $needed more coins to send $name", android.widget.Toast.LENGTH_LONG).show()
+                                        }
+                                    )
+                                }
+                                .padding(horizontal = 10.dp, vertical = 12.dp)
+                        ) {
+                            Text(text = emoji, fontSize = 32.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(text = "🪙 $cost", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = Color(0xFFFFD700), fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+
+    // Coin Recharge Top-Up Dialog
+    if (showCoinRechargeDialog) {
+        Dialog(
+            onDismissRequest = { showCoinRechargeDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.92f).padding(16.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF16161F),
+                border = BorderStroke(1.dp, Color(0xFF2A2A38))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Recharge Coins", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Buy credits to send gifts & support creators", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+                        }
+                        IconButton(onClick = { showCoinRechargeDialog = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White.copy(alpha = 0.6f))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val coinBundles = listOf(
+                        Triple(100, "$0.99", "Starter Pack"),
+                        Triple(500, "$4.99", "🔥 Most Popular"),
+                        Triple(1200, "$9.99", "🌟 Best Value"),
+                        Triple(3000, "$24.99", "👑 VIP Pack")
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        coinBundles.forEach { (coins, price, badge) ->
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color(0xFF20202C),
+                                border = BorderStroke(1.dp, Color(0xFF333345)),
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    viewModel.buyCoins(coins, price.removePrefix("$").toDoubleOrNull() ?: 0.99) {
+                                        showCoinRechargeDialog = false
+                                        android.widget.Toast.makeText(context, "Recharged +$coins Coins successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             ) {
-                                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(26.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("🪙", fontSize = 26.sp)
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text("$coins Coins", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                            Text(badge, color = Color(0xFFFF4081), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
+                                        }
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            viewModel.buyCoins(coins, price.removePrefix("$").toDoubleOrNull() ?: 0.99) {
+                                                showCoinRechargeDialog = false
+                                                android.widget.Toast.makeText(context, "Recharged +$coins Coins successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFE2C55)),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text(price, color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Delete", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -3781,6 +4301,16 @@ fun PostItem(
                     Text("Close")
                 }
             }
+        )
+    }
+
+    if (showWatermarkDownloadDialog) {
+        com.example.data.DownloadWithWatermarkDialog(
+            mediaUri = post.mediaUri,
+            authorName = post.authorName,
+            title = post.title,
+            content = post.content,
+            onDismiss = { showWatermarkDownloadDialog = false }
         )
     }
 }
@@ -4402,6 +4932,7 @@ fun BookmarksScreen(
 ) {
     val bookmarksFlow = remember { viewModel.getBookmarkedPosts() }
     val bookmarks by bookmarksFlow.collectAsStateWithLifecycle()
+    var selectedPostForComments by remember { mutableStateOf<Post?>(null) }
     
     Scaffold(
         topBar = {
@@ -4421,12 +4952,26 @@ fun BookmarksScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(bookmarks) { post ->
-                PostItem(post = post, viewModel = viewModel, onClick = { onNavigateToPostDetail(post.id) }, onAuthorClick = onNavigateToUserProfile)
+                PostItem(
+                    post = post,
+                    viewModel = viewModel,
+                    onClick = { onNavigateToPostDetail(post.id) },
+                    onAuthorClick = onNavigateToUserProfile,
+                    onCommentsClick = { selectedPostForComments = post }
+                )
             }
             if (bookmarks.isEmpty()) {
                 item { Text("No bookmarks found.", modifier = Modifier.padding(16.dp)) }
             }
         }
+    }
+
+    if (selectedPostForComments != null) {
+        VideoCommentsBottomSheet(
+            post = selectedPostForComments!!,
+            viewModel = viewModel,
+            onDismissRequest = { selectedPostForComments = null }
+        )
     }
 }
 
@@ -5849,6 +6394,10 @@ fun ModernVideoPlayer(
         }
         exoPlayer.addListener(listener)
         onDispose {
+            try {
+                exoPlayer.clearVideoSurface()
+                exoPlayer.stop()
+            } catch (e: Exception) {}
             exoPlayer.removeListener(listener)
             exoPlayer.release()
             if (autoPlayEnabled) {
@@ -6014,6 +6563,9 @@ fun ModernVideoPlayer(
                         2 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
                         else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                     }
+                },
+                onRelease = { playerView ->
+                    playerView.player = null
                 },
                 modifier = Modifier.fillMaxSize()
             )
@@ -7021,13 +7573,11 @@ fun DirectMessagesContent(
                                 }
                             }
                         } else {
-                            try {
-                                recorder?.apply {
-                                    stop()
-                                    release()
-                                }
-                                recorder = null
-                                isRecording = false
+                                        try {
+                                            try { recorder?.stop() } catch (e: Exception) { android.util.Log.w("Screens", "Safe MediaRecorder stop: ${e.message}") }
+                                            try { recorder?.release() } catch (e: Exception) {}
+                                            recorder = null
+                                            isRecording = false
                                 
                                 val file = audioFile
                                 if (file != null && file.exists()) {
@@ -8347,10 +8897,8 @@ fun MessagingScreen(
                                         }
                                     } else {
                                         try {
-                                            recorder?.apply {
-                                                stop()
-                                                release()
-                                            }
+                                            try { recorder?.stop() } catch (e: Exception) { android.util.Log.w("Screens", "Safe MediaRecorder stop: ${e.message}") }
+                                            try { recorder?.release() } catch (e: Exception) {}
                                             recorder = null
                                             isRecording = false
                                             
@@ -9441,12 +9989,19 @@ fun PostDetailScreen(
     postId: Int,
     viewModel: BlogViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToUserProfile: (Int) -> Unit
+    onNavigateToUserProfile: (Int) -> Unit,
+    autoOpenComments: Boolean = false
 ) {
     val allPosts by viewModel.allPosts.collectAsStateWithLifecycle()
     val post = remember(allPosts, postId) { allPosts.find { it.id == postId } }
     
     var selectedPostForComments by remember { mutableStateOf<Post?>(null) }
+
+    LaunchedEffect(post, autoOpenComments) {
+        if (autoOpenComments && post != null) {
+            selectedPostForComments = post
+        }
+    }
 
     if (post == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -9751,11 +10306,14 @@ fun InAppCameraPreview(
         }, androidx.core.content.ContextCompat.getMainExecutor(context))
     }
 
+    var recordingStartTimestamp by remember { mutableLongStateOf(0L) }
+
     LaunchedEffect(isRecording) {
         val videoCapture = videoCaptureState
         if (isRecording) {
             if (videoCapture != null && activeRecordingState == null) {
                 try {
+                    recordingStartTimestamp = System.currentTimeMillis()
                     val videoFile = java.io.File(context.cacheDir, "inapp_rec_${System.currentTimeMillis()}.mp4")
                     val outputOptions = androidx.camera.video.FileOutputOptions.Builder(videoFile).build()
                     
@@ -9790,16 +10348,24 @@ fun InAppCameraPreview(
             }
         } else {
             if (activeRecordingState != null) {
+                val rec = activeRecordingState
+                activeRecordingState = null
+                val elapsed = System.currentTimeMillis() - recordingStartTimestamp
+                if (elapsed < 600) {
+                    kotlinx.coroutines.delay(600 - elapsed)
+                }
                 try {
-                    activeRecordingState?.stop()
+                    rec?.stop()
                 } catch (e: Exception) {
                     android.util.Log.e("InAppCamera", "Error stopping recording: ${e.message}")
                 }
-                activeRecordingState = null
             } else if (isSimulatedRecording) {
                 isSimulatedRecording = false
-                val fallbackUrl = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-                onRecordingFinished(Uri.parse(fallbackUrl))
+                val simFile = java.io.File(context.cacheDir, "simulated_rec_${System.currentTimeMillis()}.mp4")
+                if (!simFile.exists()) {
+                    try { simFile.createNewFile() } catch (e: Exception) {}
+                }
+                onRecordingFinished(Uri.fromFile(simFile))
             }
         }
     }
@@ -9825,14 +10391,15 @@ fun InAppCameraPreview(
 @Composable
 fun CreatePostScreen(
     viewModel: BlogViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    initialSpotifyTrack: SpotifyTrack? = null
 ) {
     var mediaUri by remember { mutableStateOf<String?>(null) }
     var captionText by remember { mutableStateOf("") }
     var titleText by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Shorts") }
     var selectedTags by remember { mutableStateOf("viral,foryou") }
-    var spotifyTrack by remember { mutableStateOf<SpotifyTrack?>(null) }
+    var spotifyTrack by remember(initialSpotifyTrack) { mutableStateOf<SpotifyTrack?>(initialSpotifyTrack) }
     
     var showMusicSearch by remember { mutableStateOf(false) }
     var showPublishSheet by remember { mutableStateOf(false) }
@@ -11369,9 +11936,10 @@ private fun EditorToolButton(
 @Composable
 fun CreateStoryScreen(
     viewModel: BlogViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    initialSpotifyTrack: SpotifyTrack? = null
 ) {
-    CreatePostScreen(viewModel = viewModel, onNavigateBack = onNavigateBack)
+    CreatePostScreen(viewModel = viewModel, onNavigateBack = onNavigateBack, initialSpotifyTrack = initialSpotifyTrack)
 }
 @Composable
 fun StoryViewScreen(
